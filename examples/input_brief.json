@@ -1,0 +1,13 @@
+{
+  "topic": "AI内容创作自动化系统",
+  "audience": "自媒体创作者、内容运营、个人知识博主",
+  "goal": "解释如何用多 agent 工作流提升内容生产效率，并输出四个平台的内容包",
+  "platforms": ["wechat", "xiaohongshu", "douyin", "bilibili"],
+  "constraints": [
+    "不自动发布",
+    "需要保留来源",
+    "发布前需要人工审核",
+    "视频只生成脚本和素材包，不直接剪辑"
+  ]
+}
+

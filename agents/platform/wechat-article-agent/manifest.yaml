@@ -1,0 +1,23 @@
+id: wechat-article-agent
+name: WeChat Article Agent
+layer: platform
+role: 生成微信公众号文章、标题备选、摘要、排版建议和互动结尾。
+inputs:
+  - master_outline.md
+  - research_report.md
+  - sources.json
+outputs:
+  - wechat/article.md
+  - wechat/title_options.json
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - fact-check-agent
+quality_gates:
+  - mobile_friendly_paragraphs
+  - citations_for_factual_claims
+  - no_publish_without_approval
+

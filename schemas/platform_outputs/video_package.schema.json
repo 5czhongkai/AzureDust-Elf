@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/platform_outputs/video_package.schema.json",
+  "title": "VideoPackageOutput",
+  "type": "object",
+  "required": [
+    "platform",
+    "title_options",
+    "hook",
+    "script_markdown",
+    "storyboard",
+    "subtitles",
+    "shot_list",
+    "broll_list",
+    "cover_prompt",
+    "asset_notes",
+    "review_required"
+  ],
+  "properties": {
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "title_options": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "hook": { "type": "string" },
+    "script_markdown": { "type": "string" },
+    "storyboard": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scene", "visual", "voiceover"],
+        "properties": {
+          "scene": { "type": "string" },
+          "visual": { "type": "string" },
+          "voiceover": { "type": "string" },
+          "duration_seconds": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "subtitles": { "type": "string" },
+    "shot_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["shot_id", "scene", "visual", "voiceover", "duration_seconds"],
+        "properties": {
+          "shot_id": { "type": "string" },
+          "scene": { "type": "string" },
+          "purpose": { "type": "string" },
+          "visual": { "type": "string" },
+          "voiceover": { "type": "string" },
+          "duration_seconds": { "type": "number" },
+          "edit_note": { "type": "string" },
+          "asset_requirements": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "broll_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_id", "description", "usage", "rights_status"],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "description": { "type": "string" },
+          "usage": { "type": "string" },
+          "rights_status": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "cover_prompt": { "type": "string" },
+    "asset_notes": { "type": "array", "items": { "type": "string" } },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,31 @@
+id: editor-replacement-instructions-agent
+name: Editor Replacement Instructions Agent
+layer: common
+role: 将 replacement_suggestions.json 推进为真实剪辑软件可导入模板和 dry-run 自动化替换指令，同时保留人工确认门；不打开剪辑软件、不修改工程文件、不执行替换、不上传或发布。
+inputs:
+  - assets/{platform}/licensed_media/replacement_suggestions.json
+  - assets/{platform}/licensed_media/proxy_manifest.json
+  - assets/{platform}/edit/edit_timeline.json
+  - assets/{platform}/edit/offline_media_report.json
+  - assets/{platform}/edit/export_manifest.json
+outputs:
+  - assets/{platform}/edit/replacement_instructions/instruction_manifest.json
+  - assets/{platform}/edit/replacement_instructions/replacement_commands.json
+  - assets/{platform}/edit/replacement_instructions/editor_import_template.fcpxml
+  - assets/{platform}/edit/replacement_instructions/human_confirmation_checklist.md
+  - assets/{platform}/edit/replacement_instructions/README.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - project-bundle-agent
+  - compliance-agent
+  - validator-agent
+quality_gates:
+  - editor_import_template_generated
+  - dry_run_replacement_commands_generated
+  - human_confirmation_gate_required
+  - no_replacement_execution_or_project_file_mutation
+  - no_editing_software_upload_or_publish

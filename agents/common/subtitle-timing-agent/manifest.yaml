@@ -1,0 +1,24 @@
+id: subtitle-timing-agent
+name: Subtitle Timing Agent
+layer: common
+role: 根据平台 storyboard、shot list 与字幕草稿生成本地校正后的 timed subtitles，保证字幕时间轴贴合镜头边界并可供后续 TTS 复用。
+inputs:
+  - "{platform}/storyboard.json"
+  - "{platform}/shot_list.json"
+  - "{platform}/subtitles.srt"
+  - assets/{platform}/storyboard/storyboard_preview_metadata.json
+outputs:
+  - "{platform}/timed_subtitles.json"
+  - "{platform}/timed_subtitles.srt"
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - timed_subtitles_align_to_storyboard_duration
+  - subtitle_blocks_do_not_cross_shots
+  - long_captions_are_split_inside_shot_boundaries
+  - no_tts_edit_upload_or_publish

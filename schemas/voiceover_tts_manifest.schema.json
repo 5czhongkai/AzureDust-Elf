@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/voiceover_tts_manifest.schema.json",
+  "title": "VoiceoverTTSManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "provider",
+    "provider_external",
+    "voice_id",
+    "language",
+    "audio_path",
+    "audio_format",
+    "sample_rate",
+    "channels",
+    "bit_depth",
+    "duration_seconds",
+    "source_timed_subtitles",
+    "timed_subtitle_count",
+    "segment_count",
+    "segments",
+    "generation_status",
+    "rights_status",
+    "audio_generation_mode",
+    "provider_metadata",
+    "manual_review_required",
+    "validation",
+    "review_notes",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.voiceover_tts_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "voiceover_tts" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "hybrid-voiceover-tts-adapter" },
+    "adapter_version": { "type": "string" },
+    "provider": { "type": "string" },
+    "provider_external": { "type": "boolean" },
+    "voice_id": { "type": "string" },
+    "language": { "type": "string" },
+    "audio_path": { "type": "string" },
+    "audio_format": { "type": "string", "const": "wav" },
+    "sample_rate": { "type": "number" },
+    "channels": { "type": "number", "const": 1 },
+    "bit_depth": { "type": "number", "const": 16 },
+    "duration_seconds": { "type": "number" },
+    "source_timed_subtitles": { "type": "array", "items": { "type": "string" } },
+    "timed_subtitle_count": { "type": "number" },
+    "segment_count": { "type": "number" },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "index",
+          "subtitle_index",
+          "shot_id",
+          "scene",
+          "start_seconds",
+          "end_seconds",
+          "duration_seconds",
+          "text",
+          "track_start_sample",
+          "track_end_sample",
+          "source_timed_subtitle"
+        ],
+        "properties": {
+          "index": { "type": "number" },
+          "subtitle_index": { "type": ["number", "null"] },
+          "shot_id": { "type": ["string", "null"] },
+          "scene": { "type": ["string", "null"] },
+          "start_seconds": { "type": "number" },
+          "end_seconds": { "type": "number" },
+          "duration_seconds": { "type": "number" },
+          "text": { "type": "string" },
+          "track_start_sample": { "type": "number" },
+          "track_end_sample": { "type": "number" },
+          "source_timed_subtitle": { "type": ["number", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "generation_status": {
+      "enum": [
+        "generated_local_draft_pending_human_review",
+        "generated_external_tts_pending_human_review"
+      ]
+    },
+    "rights_status": {
+      "enum": [
+        "self_generated_pending_human_review",
+        "ai_generated_pending_human_review"
+      ]
+    },
+    "audio_generation_mode": {
+      "enum": ["local_deterministic_draft", "openai_speech_api", "siliconflow_speech_api"]
+    },
+    "provider_metadata": { "type": "object", "additionalProperties": true },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "audio_duration_matches_timeline",
+        "segments_match_timed_subtitles",
+        "source_validation_status"
+      ],
+      "properties": {
+        "status": { "type": "string", "const": "PASSED" },
+        "audio_duration_matches_timeline": { "type": "boolean", "const": true },
+        "segments_match_timed_subtitles": { "type": "boolean", "const": true },
+        "source_validation_status": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "manifest_path": { "type": "string" },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "used_by": { "type": "array", "items": { "type": "string" } },
+    "review_notes": { "type": "array", "items": { "type": "string" } },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

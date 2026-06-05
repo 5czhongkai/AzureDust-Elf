@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/artifact_store_manifest.schema.json",
+  "title": "ArtifactStoreManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "store_root",
+    "manifest_path",
+    "readme_path",
+    "download_index_path",
+    "checksums_path",
+    "delivery_index_copy_path",
+    "source_delivery_index_path",
+    "downloads",
+    "store_summary",
+    "source_artifacts",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.artifact_store_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "artifact_store" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "store_root": { "type": "string", "const": "artifact_store" },
+    "manifest_path": { "type": "string", "const": "artifact_store/artifact_store_manifest.json" },
+    "readme_path": { "type": "string", "const": "artifact_store/README.md" },
+    "download_index_path": { "type": "string", "const": "artifact_store/download_index.md" },
+    "checksums_path": { "type": "string", "const": "artifact_store/checksums.sha256" },
+    "delivery_index_copy_path": { "type": "string", "const": "artifact_store/manifests/delivery_index.json" },
+    "source_delivery_index_path": { "type": "string", "const": "final/delivery_index.json" },
+    "downloads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "platform_label",
+          "source_path",
+          "store_path",
+          "bytes",
+          "sha256",
+          "source_sha256",
+          "source_exists",
+          "checksum_matches_delivery_index",
+          "review_required"
+        ],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "source_path": { "type": "string" },
+          "store_path": { "type": "string" },
+          "bytes": { "type": "number" },
+          "sha256": { "type": ["string", "null"] },
+          "source_sha256": { "type": ["string", "null"] },
+          "source_exists": { "type": "boolean" },
+          "checksum_matches_delivery_index": { "type": "boolean" },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "store_summary": {
+      "type": "object",
+      "required": [
+        "download_count",
+        "expected_download_count",
+        "checksum_match_count",
+        "total_download_bytes",
+        "all_sources_present",
+        "all_checksums_match"
+      ],
+      "properties": {
+        "download_count": { "type": "number" },
+        "expected_download_count": { "type": "number" },
+        "checksum_match_count": { "type": "number" },
+        "total_download_bytes": { "type": "number" },
+        "all_sources_present": { "type": "boolean" },
+        "all_checksums_match": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "artifact_store_generation",
+        "local_download_directory",
+        "external_storage_sync",
+        "upload",
+        "publishing",
+        "login",
+        "platform_action"
+      ],
+      "properties": {
+        "artifact_store_generation": { "type": "string", "const": "performed_locally_file_copy" },
+        "local_download_directory": { "type": "string", "const": "generated" },
+        "external_storage_sync": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" },
+        "publishing": { "type": "string", "const": "not_performed" },
+        "login": { "type": "string", "const": "not_performed" },
+        "platform_action": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "download_count",
+        "expected_download_count",
+        "checksum_match_count",
+        "all_sources_present",
+        "all_checksums_match"
+      ],
+      "properties": {
+        "status": { "type": "string" },
+        "download_count": { "type": "number" },
+        "expected_download_count": { "type": "number" },
+        "checksum_match_count": { "type": "number" },
+        "all_sources_present": { "type": "boolean" },
+        "all_checksums_match": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_artifact_store_pending_human_distribution"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

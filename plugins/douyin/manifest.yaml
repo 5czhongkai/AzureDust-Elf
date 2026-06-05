@@ -1,0 +1,24 @@
+id: douyin
+name: Douyin Video Plugin
+platform: 抖音
+agents:
+  - douyin-video-agent
+inputs:
+  - master_outline.md
+  - asset_plan.json
+outputs:
+  - douyin/script.md
+  - douyin/storyboard.json
+  - douyin/subtitles.srt
+  - douyin/shot_list.json
+  - douyin/broll_list.json
+  - douyin/cover_prompt.md
+validators:
+  - validators/checklist.md
+human_approval:
+  - upload_video
+  - publish
+  - use_voice_clone
+  - use_uncleared_assets
+risk_notes:
+  - Phase 4 只生成视频生产包，不自动下载素材、剪辑、上传或发布。

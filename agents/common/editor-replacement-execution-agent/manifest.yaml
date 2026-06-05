@@ -1,0 +1,29 @@
+id: editor-replacement-execution-agent
+name: Editor Replacement Execution Agent
+layer: common
+role: 生成剪辑替换执行适配器预检计划、审计日志和显式人工执行批准请求；默认阻断替换执行，不打开剪辑软件、不修改工程文件、不上传或发布。
+inputs:
+  - assets/{platform}/edit/replacement_instructions/instruction_manifest.json
+  - assets/{platform}/edit/replacement_instructions/replacement_commands.json
+  - optional assets/{platform}/edit/replacement_execution/human_execution_approval.json
+outputs:
+  - assets/{platform}/edit/replacement_execution/execution_manifest.json
+  - assets/{platform}/edit/replacement_execution/execution_plan.json
+  - assets/{platform}/edit/replacement_execution/execution_audit_log.json
+  - assets/{platform}/edit/replacement_execution/human_execution_approval_request.md
+  - assets/{platform}/edit/replacement_execution/README.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - project-bundle-agent
+  - compliance-agent
+  - validator-agent
+quality_gates:
+  - execution_plan_generated
+  - explicit_human_execution_approval_required
+  - no_replacement_execution_without_approval
+  - no_editing_software_or_project_file_mutation
+  - no_upload_or_publish

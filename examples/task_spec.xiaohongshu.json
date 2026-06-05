@@ -1,0 +1,31 @@
+{
+  "task_id": "task_20260518_xhs_001",
+  "workflow_id": "one_topic_multi_platform",
+  "agent": "xiaohongshu-note-agent",
+  "goal": "基于 master outline 生成一篇小红书笔记",
+  "inputs": {
+    "topic": "AI内容创作自动化系统",
+    "audience": "自媒体创作者",
+    "master_outline_path": "master_outline.md",
+    "research_report_path": "research_report.md"
+  },
+  "outputs": [
+    "xiaohongshu/note.json",
+    "xiaohongshu/cover_prompt.md"
+  ],
+  "acceptance_criteria": [
+    "标题20字以内",
+    "正文300-600字",
+    "包含5-8个标签",
+    "包含人工审核提示",
+    "不自动发布"
+  ],
+  "permissions": ["read_artifacts", "write_artifacts"],
+  "max_retries": 2,
+  "requires_human_approval": false,
+  "metadata": {
+    "platform": "xiaohongshu",
+    "stage": "v0-example"
+  }
+}
+

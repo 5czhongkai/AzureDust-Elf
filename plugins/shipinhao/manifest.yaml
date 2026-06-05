@@ -1,0 +1,25 @@
+id: shipinhao
+name: Shipinhao Video Plugin
+platform: 视频号
+agents:
+  - shipinhao-video-agent
+inputs:
+  - master_outline.md
+  - angle_pack.json
+  - asset_plan.json
+outputs:
+  - shipinhao/script.md
+  - shipinhao/storyboard.json
+  - shipinhao/subtitles.srt
+  - shipinhao/cover_prompt.md
+  - shipinhao/shot_list.json
+  - shipinhao/broll_list.json
+validators:
+  - validators/checklist.md
+human_approval:
+  - upload_video
+  - publish
+  - use_uncleared_assets
+  - sync_to_wechat_moments
+risk_notes:
+  - Phase 4 只生成视频号生产包，不自动下载素材、剪辑、上传、同步或发布。

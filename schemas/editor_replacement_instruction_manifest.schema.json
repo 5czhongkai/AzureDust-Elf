@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_replacement_instruction_manifest.schema.json",
+  "title": "EditorReplacementInstructionManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "manifest_path",
+    "replacement_commands_path",
+    "editor_import_template_path",
+    "human_confirmation_checklist_path",
+    "readme_path",
+    "source_replacement_suggestions_path",
+    "source_proxy_manifest_path",
+    "source_export_project_path",
+    "source_artifacts",
+    "instructions",
+    "summary",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "human_confirmation_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_replacement_instruction_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "editor_replacement_instructions" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-editor-replacement-instruction-adapter" },
+    "adapter_version": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "replacement_commands_path": { "type": "string" },
+    "editor_import_template_path": { "type": "string" },
+    "human_confirmation_checklist_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "source_replacement_suggestions_path": { "type": ["string", "null"] },
+    "source_proxy_manifest_path": { "type": ["string", "null"] },
+    "source_export_project_path": { "type": ["string", "null"] },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "instructions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "platform",
+          "timeline_track",
+          "reference_path",
+          "proxy_media_path",
+          "proxy_media_exists",
+          "replacement_status",
+          "instruction_status",
+          "automation_action",
+          "automation_instruction",
+          "can_execute_after_human_confirmation",
+          "human_confirmation_required",
+          "confirmation_gate_status",
+          "execution_status",
+          "editing_software_opened"
+        ],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "shot_id": { "type": ["string", "null"] },
+          "timeline_track": { "type": "string" },
+          "start_seconds": { "type": ["number", "null"] },
+          "end_seconds": { "type": ["number", "null"] },
+          "duration_seconds": { "type": ["number", "null"] },
+          "placeholder_source_path": { "type": ["string", "null"] },
+          "reference_path": { "type": ["string", "null"] },
+          "licensed_media_path": { "type": ["string", "null"] },
+          "proxy_media_path": { "type": ["string", "null"] },
+          "proxy_media_exists": { "type": "boolean" },
+          "proxy_media_sha256": { "type": ["string", "null"] },
+          "source_media_sha256": { "type": ["string", "null"] },
+          "replacement_status": { "type": "string" },
+          "instruction_status": {
+            "enum": [
+              "ready_pending_human_confirmation",
+              "pending_human_media",
+              "blocked_proxy_media_missing",
+              "blocked_pending_rights_or_editor_review"
+            ]
+          },
+          "automation_action": { "type": "string" },
+          "automation_instruction": { "type": "string" },
+          "can_execute_after_human_confirmation": { "type": "boolean" },
+          "human_confirmation_required": { "type": "boolean", "const": true },
+          "confirmation_gate_status": { "type": "string", "const": "pending_human_confirmation" },
+          "execution_status": { "type": "string", "const": "not_executed" },
+          "editing_software_opened": { "type": "boolean", "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "instruction_count",
+        "ready_pending_human_confirmation_count",
+        "pending_human_media_count",
+        "blocked_instruction_count",
+        "executable_after_human_confirmation_count",
+        "import_template_asset_count",
+        "human_confirmation_required_count"
+      ],
+      "properties": {
+        "instruction_count": { "type": "number" },
+        "ready_pending_human_confirmation_count": { "type": "number" },
+        "pending_human_media_count": { "type": "number" },
+        "blocked_instruction_count": { "type": "number" },
+        "executable_after_human_confirmation_count": { "type": "number" },
+        "import_template_asset_count": { "type": "number" },
+        "human_confirmation_required_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "editor_replacement_instructions",
+        "replacement_execution",
+        "editing_software",
+        "project_file_mutation",
+        "asset_download",
+        "external_asset_search",
+        "license_purchase",
+        "upload",
+        "publishing"
+      ],
+      "properties": {
+        "editor_replacement_instructions": { "type": "string", "const": "performed_locally_template_and_instruction_only" },
+        "replacement_execution": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened" },
+        "project_file_mutation": { "type": "string", "const": "not_performed" },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "license_purchase": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" },
+        "publishing": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "instruction_count",
+        "ready_pending_human_confirmation_count",
+        "pending_human_media_count",
+        "blocked_instruction_count",
+        "executable_after_human_confirmation_count",
+        "human_confirmation_gate_active",
+        "replacement_execution_performed",
+        "editing_software_opened"
+      ],
+      "properties": {
+        "status": { "enum": ["PASSED", "NEEDS_REVIEW"] },
+        "instruction_count": { "type": "number" },
+        "ready_pending_human_confirmation_count": { "type": "number" },
+        "pending_human_media_count": { "type": "number" },
+        "blocked_instruction_count": { "type": "number" },
+        "executable_after_human_confirmation_count": { "type": "number" },
+        "human_confirmation_gate_active": { "type": "boolean" },
+        "replacement_execution_performed": { "type": "boolean", "const": false },
+        "editing_software_opened": { "type": "boolean", "const": false }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_editor_replacement_templates_pending_human_confirmation"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "human_confirmation_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

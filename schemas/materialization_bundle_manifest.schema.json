@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/materialization_bundle_manifest.schema.json",
+  "title": "MaterializationBundleManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "manifest_path",
+    "video_production_package",
+    "platforms",
+    "source_artifacts",
+    "platform_materials",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.materialization_bundle_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "materialization_bundle" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "manifest_path": { "type": "string", "const": "final/materialization_manifest.json" },
+    "video_production_package": { "type": "string", "const": "final/video_production_package.json" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["douyin", "shipinhao", "bilibili"] }
+    },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "platform_materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "platform_label",
+          "manifest_path",
+          "readme_path",
+          "materialized_count",
+          "reference_paths",
+          "validation",
+          "source_artifacts",
+          "review_required"
+        ],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "manifest_path": { "type": ["string", "null"] },
+          "readme_path": { "type": ["string", "null"] },
+          "materialized_count": { "type": "number" },
+          "reference_paths": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "validation": {
+            "type": "object",
+            "required": ["status", "licensed_final_media_required"],
+            "properties": {
+              "status": { "type": ["string", "null"] },
+              "licensed_final_media_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "source_artifacts": { "type": "array", "items": { "type": "string" } },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "asset_materialization",
+        "asset_download",
+        "external_asset_search",
+        "editing_software",
+        "publishing",
+        "upload"
+      ],
+      "properties": {
+        "asset_materialization": { "type": "string", "const": "performed_locally_reference_only" },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened" },
+        "publishing": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "platform_count",
+        "passed_platform_count",
+        "materialized_count",
+        "licensed_final_media_required"
+      ],
+      "properties": {
+        "status": { "type": "string" },
+        "platform_count": { "type": "number" },
+        "passed_platform_count": { "type": "number" },
+        "materialized_count": { "type": "number" },
+        "licensed_final_media_required": { "type": "boolean", "const": true }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_materialization_bundle_pending_human_review"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

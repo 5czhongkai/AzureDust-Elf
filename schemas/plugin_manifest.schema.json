@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/plugin_manifest.schema.json",
+  "title": "PluginManifest",
+  "type": "object",
+  "required": ["id", "name", "platform", "agents", "inputs", "outputs", "validators", "human_approval"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "platform": { "type": "string" },
+    "agents": { "type": "array", "items": { "type": "string" } },
+    "inputs": { "type": "array", "items": { "type": "string" } },
+    "outputs": { "type": "array", "items": { "type": "string" } },
+    "validators": { "type": "array", "items": { "type": "string" } },
+    "human_approval": { "type": "array", "items": { "type": "string" } },
+    "risk_notes": { "type": "array", "items": { "type": "string" }, "default": [] }
+  },
+  "additionalProperties": false
+}
+

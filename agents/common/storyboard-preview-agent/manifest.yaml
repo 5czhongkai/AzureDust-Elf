@@ -1,0 +1,25 @@
+id: storyboard-preview-agent
+name: Storyboard Preview Agent
+layer: common
+role: 根据平台 storyboard 与 storyboard_frame 素材任务生成本地分镜关键帧预览图和预览元数据。
+inputs:
+  - assets/asset_generation_tasks.json
+  - "{platform}/storyboard.json"
+  - "{platform}/shot_list.json"
+outputs:
+  - assets/{platform}/storyboard/storyboard_preview.png
+  - assets/{platform}/storyboard/storyboard_preview_metadata.json
+  - assets/{platform}/storyboard/{shot_id}.png
+tools:
+  - filesystem
+  - pillow
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - storyboard_keyframes_are_generated_locally
+  - preview_metadata_marks_pending_human_review
+  - frame_count_matches_storyboard
+  - no_edit_upload_or_publish

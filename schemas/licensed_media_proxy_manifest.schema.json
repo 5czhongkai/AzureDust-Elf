@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/licensed_media_proxy_manifest.schema.json",
+  "title": "LicensedMediaProxyManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "manifest_path",
+    "replacement_suggestions_path",
+    "readme_path",
+    "proxy_dir",
+    "licensed_media_ingest_manifest_path",
+    "source_artifacts",
+    "proxy_assets",
+    "summary",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.licensed_media_proxy_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "licensed_media_proxy" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-licensed-media-proxy-adapter" },
+    "adapter_version": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "replacement_suggestions_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "proxy_dir": { "type": "string" },
+    "licensed_media_ingest_manifest_path": { "type": ["string", "null"] },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "proxy_assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "platform",
+          "asset_type",
+          "reference_path",
+          "planned_target_path",
+          "licensed_media_path",
+          "license_proof_path",
+          "proxy_media_path",
+          "source_media_exists",
+          "source_media_bytes",
+          "source_media_sha256",
+          "proxy_media_bytes",
+          "proxy_media_sha256",
+          "source_ready_for_proxy",
+          "proxy_copy_status",
+          "replacement_status",
+          "editor_replacement_ready",
+          "licensed_media_intake_status",
+          "licensed_media_review_status",
+          "rights_confirmation",
+          "manifest_path",
+          "replacement_suggestions_path",
+          "readme_path",
+          "manual_review_required"
+        ],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "asset_type": { "type": "string", "const": "licensed_broll_proxy" },
+          "source_reference_asset_type": { "type": ["string", "null"] },
+          "reference_path": { "type": ["string", "null"] },
+          "planned_target_path": { "type": ["string", "null"] },
+          "licensed_media_path": { "type": ["string", "null"] },
+          "license_proof_path": { "type": ["string", "null"] },
+          "proxy_media_path": { "type": ["string", "null"] },
+          "source_media_exists": { "type": "boolean" },
+          "source_media_bytes": { "type": "number" },
+          "source_media_sha256": { "type": ["string", "null"] },
+          "proxy_media_bytes": { "type": "number" },
+          "proxy_media_sha256": { "type": ["string", "null"] },
+          "source_ready_for_proxy": { "type": "boolean" },
+          "proxy_copy_status": { "type": "string" },
+          "replacement_status": {
+            "enum": [
+              "pending_human_media",
+              "candidate_registered_pending_review",
+              "blocked_registered_media_missing",
+              "proxy_ready_for_editor_replacement"
+            ]
+          },
+          "editor_replacement_ready": { "type": "boolean" },
+          "licensed_media_intake_status": {
+            "enum": [
+              "pending_human_media",
+              "candidate_registered_pending_review",
+              "approved_candidate_ready_for_editor_replacement"
+            ]
+          },
+          "licensed_media_review_status": { "type": "string" },
+          "rights_confirmation": { "type": "string" },
+          "manifest_path": { "type": "string" },
+          "replacement_suggestions_path": { "type": "string" },
+          "readme_path": { "type": "string" },
+          "manual_review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "required_final_media_count",
+        "ready_source_media_count",
+        "proxy_copied_count",
+        "pending_human_media_count",
+        "candidate_pending_review_count",
+        "blocked_proxy_count",
+        "editor_replacement_ready_count"
+      ],
+      "properties": {
+        "required_final_media_count": { "type": "number" },
+        "ready_source_media_count": { "type": "number" },
+        "proxy_copied_count": { "type": "number" },
+        "pending_human_media_count": { "type": "number" },
+        "candidate_pending_review_count": { "type": "number" },
+        "blocked_proxy_count": { "type": "number" },
+        "editor_replacement_ready_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "licensed_media_proxy",
+        "asset_download",
+        "external_asset_search",
+        "license_purchase",
+        "editing_software",
+        "upload",
+        "publishing"
+      ],
+      "properties": {
+        "licensed_media_proxy": { "type": "string", "const": "performed_locally_from_human_registered_media_only" },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "license_purchase": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened" },
+        "upload": { "type": "string", "const": "not_performed" },
+        "publishing": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "all_licensed_media_slots_covered",
+        "proxy_copy_complete_for_ready_media",
+        "ready_source_media_count",
+        "proxy_copied_count",
+        "pending_human_media_count",
+        "editor_replacement_ready_count"
+      ],
+      "properties": {
+        "status": { "enum": ["PASSED", "NEEDS_REVIEW"] },
+        "all_licensed_media_slots_covered": { "type": "boolean" },
+        "proxy_copy_complete_for_ready_media": { "type": "boolean" },
+        "ready_source_media_count": { "type": "number" },
+        "proxy_copied_count": { "type": "number" },
+        "pending_human_media_count": { "type": "number" },
+        "editor_replacement_ready_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_proxy_replacement_suggestions_pending_editor_review"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

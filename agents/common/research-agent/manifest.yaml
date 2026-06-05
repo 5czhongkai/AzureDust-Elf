@@ -1,0 +1,25 @@
+id: research-agent
+name: Research Agent
+layer: common
+role: 围绕主题收集资料、整理来源、提取事实和竞品内容线索。
+inputs:
+  - brief
+  - source_policy
+outputs:
+  - research_report.md
+  - sources.json
+tools:
+  - web_search
+  - browser
+  - filesystem
+permissions:
+  - network_read
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - topic-agent
+  - fact-check-agent
+quality_gates:
+  - sources_must_be_traceable
+  - no_unsourced_factual_claims
+

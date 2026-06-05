@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/edit_timeline.schema.json",
+  "title": "EditTimeline",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "aspect_ratio",
+    "frame_rate",
+    "duration_seconds",
+    "tracks",
+    "markers",
+    "edit_policy",
+    "validation",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.edit_timeline.v1" },
+    "artifact_type": { "type": "string", "const": "edit_timeline" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "aspect_ratio": { "type": "string" },
+    "frame_rate": { "type": "number" },
+    "duration_seconds": { "type": "number" },
+    "tracks": {
+      "type": "object",
+      "required": ["video", "audio", "subtitles"],
+      "properties": {
+        "video": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+        "audio": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+        "subtitles": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+      },
+      "additionalProperties": false
+    },
+    "markers": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "edit_policy": { "type": "object", "additionalProperties": true },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "video_duration_matches",
+        "audio_duration_matches",
+        "subtitle_duration_matches",
+        "video_clip_count",
+        "audio_clip_count",
+        "subtitle_clip_count"
+      ],
+      "properties": {
+        "status": { "type": "string", "const": "PASSED" },
+        "video_duration_matches": { "type": "boolean", "const": true },
+        "audio_duration_matches": { "type": "boolean", "const": true },
+        "subtitle_duration_matches": { "type": "boolean", "const": true },
+        "video_clip_count": { "type": "number" },
+        "audio_clip_count": { "type": "number" },
+        "subtitle_clip_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

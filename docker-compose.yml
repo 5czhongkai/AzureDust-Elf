@@ -1,0 +1,114 @@
+services:
+  console:
+    build: .
+    working_dir: /app
+    ports:
+      - "${CONTENT_AGENT_CONSOLE_PORT:-8080}:8080"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./backups:/app/backups
+    environment:
+      PYTHONPATH: /app/src
+      CONTENT_AGENT_ENV: ${CONTENT_AGENT_ENV:-local}
+      CONTENT_AGENT_TIMEZONE: ${CONTENT_AGENT_TIMEZONE:-Asia/Shanghai}
+      CONTENT_AGENT_OUTPUT_ROOT: /app/outputs/runs
+      CONTENT_AGENT_BACKUP_ROOT: /app/backups
+      CONTENT_AGENT_PLATFORMS: ${CONTENT_AGENT_PLATFORMS:-wechat,xiaohongshu,douyin,shipinhao,bilibili}
+      CONTENT_AGENT_CONSOLE_INLINE_JOBS: ${CONTENT_AGENT_CONSOLE_INLINE_JOBS:-1}
+      CONTENT_AGENT_JOB_RETENTION_DAYS: ${CONTENT_AGENT_JOB_RETENTION_DAYS:-30}
+      CONTENT_AGENT_AUDIT_RETENTION_DAYS: ${CONTENT_AGENT_AUDIT_RETENTION_DAYS:-90}
+      CONTENT_AGENT_OS_TTS_PROVIDER: ${CONTENT_AGENT_OS_TTS_PROVIDER:-}
+      CONTENT_AGENT_OS_TTS_MODEL: ${CONTENT_AGENT_OS_TTS_MODEL:-}
+      CONTENT_AGENT_OS_TTS_VOICE: ${CONTENT_AGENT_OS_TTS_VOICE:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      CONTENT_AGENT_OS_TTS_API_KEY: ${CONTENT_AGENT_OS_TTS_API_KEY:-}
+    command:
+      - python
+      - -m
+      - content_agent_os.console_server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --workflow
+      - workflows/one_topic_multi_platform.yaml
+      - --output-root
+      - /app/outputs/runs
+      - --backup-root
+      - /app/backups
+
+  worker:
+    build: .
+    working_dir: /app
+    profiles: ["worker"]
+    volumes:
+      - ./outputs:/app/outputs
+      - ./backups:/app/backups
+    environment:
+      PYTHONPATH: /app/src
+      CONTENT_AGENT_ENV: ${CONTENT_AGENT_ENV:-local}
+      CONTENT_AGENT_TIMEZONE: ${CONTENT_AGENT_TIMEZONE:-Asia/Shanghai}
+      CONTENT_AGENT_OUTPUT_ROOT: /app/outputs/runs
+      CONTENT_AGENT_BACKUP_ROOT: /app/backups
+      CONTENT_AGENT_PLATFORMS: ${CONTENT_AGENT_PLATFORMS:-wechat,xiaohongshu,douyin,shipinhao,bilibili}
+      CONTENT_AGENT_TOPIC: ${CONTENT_AGENT_TOPIC:-AI内容创作自动化系统}
+      CONTENT_AGENT_WORKER_ONCE: ${CONTENT_AGENT_WORKER_ONCE:-0}
+      CONTENT_AGENT_WORKER_POLL_INTERVAL_SECONDS: ${CONTENT_AGENT_WORKER_POLL_INTERVAL_SECONDS:-5}
+      CONTENT_AGENT_OS_TTS_PROVIDER: ${CONTENT_AGENT_OS_TTS_PROVIDER:-}
+      CONTENT_AGENT_OS_TTS_MODEL: ${CONTENT_AGENT_OS_TTS_MODEL:-}
+      CONTENT_AGENT_OS_TTS_VOICE: ${CONTENT_AGENT_OS_TTS_VOICE:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      CONTENT_AGENT_OS_TTS_API_KEY: ${CONTENT_AGENT_OS_TTS_API_KEY:-}
+    command:
+      - python
+      - -m
+      - content_agent_os.worker
+      - --output-root
+      - /app/outputs/runs
+
+  scheduler:
+    build: .
+    working_dir: /app
+    profiles: ["scheduler"]
+    volumes:
+      - ./outputs:/app/outputs
+      - ./backups:/app/backups
+    environment:
+      PYTHONPATH: /app/src
+      CONTENT_AGENT_ENV: ${CONTENT_AGENT_ENV:-local}
+      CONTENT_AGENT_TIMEZONE: ${CONTENT_AGENT_TIMEZONE:-Asia/Shanghai}
+      CONTENT_AGENT_OUTPUT_ROOT: /app/outputs/runs
+      CONTENT_AGENT_BACKUP_ROOT: /app/backups
+      CONTENT_AGENT_PLATFORMS: ${CONTENT_AGENT_PLATFORMS:-wechat,xiaohongshu,douyin,shipinhao,bilibili}
+      CONTENT_AGENT_TOPIC: ${CONTENT_AGENT_TOPIC:-AI内容创作自动化系统}
+      CONTENT_AGENT_SCHEDULE_TOPIC: ${CONTENT_AGENT_SCHEDULE_TOPIC:-AI内容创作自动化系统}
+      CONTENT_AGENT_SCHEDULE_INTERVAL_SECONDS: ${CONTENT_AGENT_SCHEDULE_INTERVAL_SECONDS:-86400}
+      CONTENT_AGENT_SCHEDULER_DRY_RUN: ${CONTENT_AGENT_SCHEDULER_DRY_RUN:-1}
+      CONTENT_AGENT_SCHEDULER_ONCE: ${CONTENT_AGENT_SCHEDULER_ONCE:-0}
+      CONTENT_AGENT_OS_TTS_PROVIDER: ${CONTENT_AGENT_OS_TTS_PROVIDER:-}
+      CONTENT_AGENT_OS_TTS_MODEL: ${CONTENT_AGENT_OS_TTS_MODEL:-}
+      CONTENT_AGENT_OS_TTS_VOICE: ${CONTENT_AGENT_OS_TTS_VOICE:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      CONTENT_AGENT_OS_TTS_API_KEY: ${CONTENT_AGENT_OS_TTS_API_KEY:-}
+    command:
+      - python
+      - -m
+      - content_agent_os.scheduler
+      - --workflow
+      - workflows/one_topic_multi_platform.yaml
+      - --output-root
+      - /app/outputs/runs
+
+  validator:
+    build: .
+    working_dir: /app
+    profiles: ["tools"]
+    volumes:
+      - ./outputs:/app/outputs
+      - ./backups:/app/backups
+    environment:
+      PYTHONPATH: /app/src
+    command: ["make", "validate-phase5-console"]

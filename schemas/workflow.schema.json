@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/workflow.schema.json",
+  "title": "Workflow",
+  "type": "object",
+  "required": ["id", "name", "version", "inputs", "steps", "outputs"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "inputs": { "type": "array", "items": { "type": "string" } },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "agent", "depends_on", "outputs"],
+        "properties": {
+          "id": { "type": "string" },
+          "agent": { "type": "string" },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "outputs": { "type": "array", "items": { "type": "string" } },
+          "parallel_group": { "type": "string" },
+          "requires_human_approval": { "type": "boolean", "default": false }
+        },
+        "additionalProperties": true
+      }
+    },
+    "outputs": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
+

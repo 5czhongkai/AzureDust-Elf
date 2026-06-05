@@ -1,0 +1,176 @@
+# V1 Step 2 Completion Audit
+
+Date: 2026-05-18
+
+## Objective
+
+实现 V1 第二步：把 runner 从纯模板产物生成升级为真实 `run_agent(task_spec)` 接口，并先接入 `research-agent` 与 `outline-agent`，让研究报告和总大纲由 agent handler 生成，而不是由 runner 的固定模板生成。
+
+## Success Criteria
+
+- 存在可调用的 `run_agent(task_spec)` 接口。
+- `research-agent` 通过该接口生成 `research_report.md` 和 `sources.json`。
+- `outline-agent` 通过该接口生成 `master_outline.md`。
+- runner 能根据 agent 是否已接入，在 `run_agent` 与模板 fallback 之间路由。
+- task log 能显示每个 step 的执行模式。
+- `validate-run` 能确认 `research` 和 `master_outline` 是 `agent-local`。
+- 平台 agent 暂时保留模板 fallback，不影响全平台 workflow 完成。
+- 不触发模型调用、登录、cookie 刷新、上传或发布。
+
+## Prompt-to-Artifact Checklist
+
+| Requirement | Evidence | Verification |
+| --- | --- | --- |
+| 新增 `run_agent(task_spec)` 接口 | `src/content_agent_os/agents.py` | Exposes `run_agent`, `supports_agent`, `AgentExecutionContext`, `AgentResult` |
+| 接入 `research-agent` | `src/content_agent_os/agents.py` | `_run_research_agent` returns `research_report.md` and `sources.json` |
+| 接入 `outline-agent` | `src/content_agent_os/agents.py` | `_run_outline_agent` reads upstream artifacts and returns `master_outline.md` |
+| runner 路由到 agent 接口 | `src/content_agent_os/runner.py` | `_execute_step` calls `run_agent` when `supports_agent(step.agent)` is true |
+| 未接入 agent 保留模板 fallback | `src/content_agent_os/runner.py` | `_execute_step` returns template `AgentResult` for unsupported agents |
+| task log 记录执行模式 | `src/content_agent_os/runner.py` | `task_run.execution_mode` and `agent_result.metadata.execution_mode` are written |
+| `validate-run` 覆盖 agent-local 要求 | `scripts/validate_run.py` | Fails unless `research` and `master_outline` are `agent-local` |
+| schema 支持新字段 | `schemas/workflow_run.schema.json`, `schemas/artifact_manifest.schema.json` | Includes `execution_mode` |
+| 文档更新 | `docs/RUNBOOK.md`, `docs/IMPLEMENTATION_ROADMAP.md` | Describes V1 step 2 behavior |
+
+## Verification Commands
+
+```bash
+python3 -m py_compile src/content_agent_os/agents.py src/content_agent_os/workflow.py src/content_agent_os/runner.py src/content_agent_os/cli.py scripts/validate_run.py scripts/validate_v0.py
+make validate
+make run TOPIC="AI内容创作自动化系统"
+make validate-run RUN_ID="run_20260518T101334Z"
+make run TOPIC="AI内容创作自动化系统" PLATFORMS="xiaohongshu"
+make validate-run RUN_ID="run_20260518T101505Z"
+```
+
+Verified results:
+
+```text
+make validate
+V0 validation passed.
+Checked 32 required paths, 14 agents, 4 plugins.
+```
+
+Old pure-template run rejection:
+
+```text
+make validate-run RUN_ID="run_20260518T095748Z"
+Run validation failed: research must run through run_agent(task_spec); got None
+```
+
+This confirms `validate-run` no longer accepts a pure-template V1 step 1 run as sufficient for V1 step 2.
+
+Full platform run:
+
+```text
+make run TOPIC="AI内容创作自动化系统"
+Created workflow run: outputs/runs/run_20260518T101334Z
+Workflow state: outputs/runs/run_20260518T101334Z/workflow_run.json
+Content package: outputs/runs/run_20260518T101334Z/final/content_package_manifest.json
+```
+
+Full platform validation:
+
+```text
+make validate-run RUN_ID="run_20260518T101334Z"
+Run validation passed: /Volumes/D/自媒体内容创作/outputs/runs/run_20260518T101334Z
+Tasks: 10
+Artifacts: 17
+Agent-local steps: research, master_outline
+```
+
+Observed execution modes:
+
+```text
+research agent-local
+topic_angles template
+master_outline agent-local
+wechat_article template
+xiaohongshu_note template
+douyin_video template
+bilibili_video template
+fact_check template
+compliance_check template
+final_validation template
+```
+
+Single-platform run:
+
+```text
+make run TOPIC="AI内容创作自动化系统" PLATFORMS="xiaohongshu"
+Created workflow run: outputs/runs/run_20260518T101505Z
+```
+
+Single-platform validation:
+
+```text
+make validate-run RUN_ID="run_20260518T101505Z"
+Run validation passed: /Volumes/D/自媒体内容创作/outputs/runs/run_20260518T101505Z
+Tasks: 10
+Artifacts: 9
+Agent-local steps: research, master_outline
+```
+
+Single-platform status check:
+
+```text
+research PASSED agent-local
+topic_angles PASSED template
+master_outline PASSED agent-local
+wechat_article SKIPPED
+xiaohongshu_note PASSED template
+douyin_video SKIPPED
+bilibili_video SKIPPED
+fact_check PASSED template
+compliance_check PASSED template
+final_validation PASSED template
+```
+
+## Actual Output Evidence
+
+Full run:
+
+- `outputs/runs/run_20260518T101334Z/logs/tasks/research.json`
+- `outputs/runs/run_20260518T101334Z/logs/tasks/master_outline.json`
+- `outputs/runs/run_20260518T101334Z/research_report.md`
+- `outputs/runs/run_20260518T101334Z/sources.json`
+- `outputs/runs/run_20260518T101334Z/master_outline.md`
+- `outputs/runs/run_20260518T101334Z/final/content_package_manifest.json`
+
+The research task log records:
+
+```text
+execution_mode: agent-local
+agent_interface: run_agent(task_spec)
+```
+
+The outline task log records:
+
+```text
+execution_mode: agent-local
+agent_interface: run_agent(task_spec)
+used_research_report: true
+used_angle_pack: true
+```
+
+The generated `research_report.md` contains:
+
+```text
+This report was generated by `research-agent` through `run_agent(task_spec)`, not by the runner template.
+```
+
+The generated `master_outline.md` contains:
+
+```text
+This outline was generated by `outline-agent` through `run_agent(task_spec)`, using available upstream artifacts.
+```
+
+Single-platform run:
+
+- `outputs/runs/run_20260518T101505Z/final/content_package_manifest.json` contains only `xiaohongshu` platform artifacts.
+
+## Known Limits
+
+- `research-agent` is local and structured; it does not fetch external sources yet.
+- `outline-agent` is local and structured; it does not call an LLM yet.
+- Platform output agents still use template fallback.
+- Content quality is still basic and must be improved in later V1 steps.

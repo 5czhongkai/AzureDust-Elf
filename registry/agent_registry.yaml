@@ -1,0 +1,105 @@
+version: 0.0.0
+description: V0 agent registry for Content Agent OS.
+agents:
+  - id: global-orchestrator
+    path: agents/global-orchestrator/manifest.yaml
+    layer: orchestrator
+  - id: research-agent
+    path: agents/common/research-agent/manifest.yaml
+    layer: common
+  - id: topic-agent
+    path: agents/common/topic-agent/manifest.yaml
+    layer: common
+  - id: outline-agent
+    path: agents/common/outline-agent/manifest.yaml
+    layer: common
+  - id: style-agent
+    path: agents/common/style-agent/manifest.yaml
+    layer: common
+  - id: asset-agent
+    path: agents/common/asset-agent/manifest.yaml
+    layer: common
+  - id: asset-materialization-agent
+    path: agents/common/asset-materialization-agent/manifest.yaml
+    layer: common
+  - id: licensed-media-ingest-agent
+    path: agents/common/licensed-media-ingest-agent/manifest.yaml
+    layer: common
+  - id: licensed-media-proxy-agent
+    path: agents/common/licensed-media-proxy-agent/manifest.yaml
+    layer: common
+  - id: editor-replacement-instructions-agent
+    path: agents/common/editor-replacement-instructions-agent/manifest.yaml
+    layer: common
+  - id: editor-replacement-execution-agent
+    path: agents/common/editor-replacement-execution-agent/manifest.yaml
+    layer: common
+  - id: editor-project-mutation-sandbox-agent
+    path: agents/common/editor-project-mutation-sandbox-agent/manifest.yaml
+    layer: common
+  - id: editor-software-import-executor-agent
+    path: agents/common/editor-software-import-executor-agent/manifest.yaml
+    layer: common
+  - id: editor-software-real-runner-sandbox-agent
+    path: agents/common/editor-software-real-runner-sandbox-agent/manifest.yaml
+    layer: common
+  - id: editor-software-run-evidence-agent
+    path: agents/common/editor-software-run-evidence-agent/manifest.yaml
+    layer: common
+  - id: cover-image-agent
+    path: agents/common/cover-image-agent/manifest.yaml
+    layer: common
+  - id: storyboard-preview-agent
+    path: agents/common/storyboard-preview-agent/manifest.yaml
+    layer: common
+  - id: subtitle-timing-agent
+    path: agents/common/subtitle-timing-agent/manifest.yaml
+    layer: common
+  - id: voiceover-tts-agent
+    path: agents/common/voiceover-tts-agent/manifest.yaml
+    layer: common
+  - id: edit-project-agent
+    path: agents/common/edit-project-agent/manifest.yaml
+    layer: common
+  - id: export-project-agent
+    path: agents/common/export-project-agent/manifest.yaml
+    layer: common
+  - id: project-bundle-agent
+    path: agents/common/project-bundle-agent/manifest.yaml
+    layer: common
+  - id: delivery-index-agent
+    path: agents/common/delivery-index-agent/manifest.yaml
+    layer: common
+  - id: artifact-store-agent
+    path: agents/common/artifact-store-agent/manifest.yaml
+    layer: common
+  - id: external-mirror-plan-agent
+    path: agents/common/external-mirror-plan-agent/manifest.yaml
+    layer: common
+  - id: fact-check-agent
+    path: agents/common/fact-check-agent/manifest.yaml
+    layer: common
+  - id: compliance-agent
+    path: agents/common/compliance-agent/manifest.yaml
+    layer: common
+  - id: validator-agent
+    path: agents/common/validator-agent/manifest.yaml
+    layer: validator
+  - id: repair-agent
+    path: agents/common/repair-agent/manifest.yaml
+    layer: repair
+  - id: wechat-article-agent
+    path: agents/platform/wechat-article-agent/manifest.yaml
+    layer: platform
+  - id: xiaohongshu-note-agent
+    path: agents/platform/xiaohongshu-note-agent/manifest.yaml
+    layer: platform
+  - id: douyin-video-agent
+    path: agents/platform/douyin-video-agent/manifest.yaml
+    layer: platform
+  - id: shipinhao-video-agent
+    path: agents/platform/shipinhao-video-agent/manifest.yaml
+    layer: platform
+  - id: bilibili-video-agent
+    path: agents/platform/bilibili-video-agent/manifest.yaml
+    layer: platform

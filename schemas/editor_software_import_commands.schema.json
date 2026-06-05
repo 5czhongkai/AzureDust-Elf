@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_software_import_commands.schema.json",
+  "title": "EditorSoftwareImportCommands",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "import_commands_path",
+    "commands",
+    "summary",
+    "export_boundary",
+    "validation",
+    "manual_review_required",
+    "human_software_import_approval_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_software_import_commands.v1" },
+    "artifact_type": { "type": "string", "const": "editor_software_import_commands" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "import_commands_path": { "type": "string" },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "command_id",
+          "asset_id",
+          "command_type",
+          "target_editor",
+          "platform",
+          "patched_project_path",
+          "manual_command_preview",
+          "isolated_execution_required",
+          "auto_execute",
+          "dry_run_only",
+          "human_software_import_approval_required",
+          "human_software_import_approved",
+          "execution_status",
+          "import_execution_performed",
+          "editing_software_opened",
+          "project_file_mutation_performed",
+          "upload_performed",
+          "publishing_performed"
+        ],
+        "properties": {
+          "command_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "command_type": { "type": "string", "const": "editor_software_import" },
+          "target_editor": { "type": "string" },
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "patched_project_path": { "type": "string" },
+          "manual_command_preview": { "type": "string" },
+          "isolated_execution_required": { "type": "boolean", "const": true },
+          "auto_execute": { "type": "boolean", "const": false },
+          "dry_run_only": { "type": "boolean", "const": true },
+          "human_software_import_approval_required": { "type": "boolean", "const": true },
+          "human_software_import_approved": { "type": "boolean" },
+          "execution_status": {
+            "enum": [
+              "blocked_pending_human_software_import_approval",
+              "blocked_no_sandbox_patch_for_item",
+              "blocked_patched_project_missing",
+              "ready_for_isolated_manual_import"
+            ]
+          },
+          "import_execution_performed": { "type": "boolean", "const": false },
+          "editing_software_opened": { "type": "boolean", "const": false },
+          "project_file_mutation_performed": { "type": "boolean", "const": false },
+          "upload_performed": { "type": "boolean", "const": false },
+          "publishing_performed": { "type": "boolean", "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": { "type": "object", "additionalProperties": true },
+    "export_boundary": { "type": "object", "additionalProperties": true },
+    "validation": { "type": "object", "additionalProperties": true },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "human_software_import_approval_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

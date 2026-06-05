@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_software_run_evidence_manifest.schema.json",
+  "title": "EditorSoftwareRunEvidenceManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "manifest_path",
+    "validation_report_path",
+    "rollback_decision_report_path",
+    "checklist_path",
+    "readme_path",
+    "human_real_run_result_path",
+    "human_real_run_result_present",
+    "human_real_run_result_valid",
+    "evidence_items",
+    "summary",
+    "export_boundary",
+    "validation",
+    "source_artifacts",
+    "manual_review_required",
+    "human_real_run_result_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_software_run_evidence_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "editor_software_run_evidence" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "validation_report_path": { "type": "string" },
+    "rollback_decision_report_path": { "type": "string" },
+    "checklist_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "source_runner_manifest_path": { "type": ["string", "null"] },
+    "source_launch_plan_path": { "type": ["string", "null"] },
+    "source_command_preview_path": { "type": ["string", "null"] },
+    "source_runner_evidence_manifest_path": { "type": ["string", "null"] },
+    "human_real_run_result_path": { "type": "string" },
+    "human_real_run_result_present": { "type": "boolean" },
+    "human_real_run_result_valid": { "type": "boolean" },
+    "evidence_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "source_runner_item_status",
+          "evidence_status",
+          "human_real_run_result_required",
+          "human_real_run_result_valid",
+          "real_software_launch_performed_by_automation",
+          "software_import_execution_performed_by_automation",
+          "editing_software_opened_by_automation",
+          "project_file_mutation_performed_by_automation",
+          "process_spawned_by_automation",
+          "upload_performed",
+          "publishing_performed"
+        ],
+        "properties": {
+          "asset_id": { "type": ["string", "null"] },
+          "source_runner_item_status": { "type": ["string", "null"] },
+          "evidence_status": {
+            "enum": [
+              "blocked_pending_human_real_run_result",
+              "human_real_run_evidence_ingested"
+            ]
+          },
+          "human_real_run_result_required": { "type": "boolean", "const": true },
+          "human_real_run_result_valid": { "type": "boolean" },
+          "real_software_launch_performed_by_automation": { "type": "boolean", "const": false },
+          "software_import_execution_performed_by_automation": { "type": "boolean", "const": false },
+          "editing_software_opened_by_automation": { "type": "boolean", "const": false },
+          "project_file_mutation_performed_by_automation": { "type": "boolean", "const": false },
+          "process_spawned_by_automation": { "type": "boolean", "const": false },
+          "upload_performed": { "type": "boolean", "const": false },
+          "publishing_performed": { "type": "boolean", "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidence_files": { "type": "array", "items": { "type": "string" } },
+    "missing_evidence_files": { "type": "array", "items": { "type": "string" } },
+    "rollback_decision": { "type": "string" },
+    "summary": { "type": "object", "additionalProperties": true },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "editor_software_run_evidence",
+        "real_software_launch_by_automation",
+        "software_import_execution_by_automation",
+        "editing_software",
+        "project_file_mutation",
+        "original_project_mutation",
+        "replacement_execution_by_automation",
+        "process_spawn",
+        "evidence_ingest_only",
+        "requires_human_real_run_result",
+        "asset_download",
+        "external_asset_search",
+        "license_purchase",
+        "upload",
+        "publishing"
+      ],
+      "properties": {
+        "editor_software_run_evidence": {
+          "enum": [
+            "blocked_pending_human_real_run_result",
+            "human_evidence_ingested_no_automation_execution"
+          ]
+        },
+        "real_software_launch_by_automation": { "type": "string", "const": "not_performed" },
+        "software_import_execution_by_automation": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened_by_automation" },
+        "project_file_mutation": { "type": "string", "const": "not_performed_by_evidence_ingest" },
+        "original_project_mutation": { "type": "string", "const": "not_performed" },
+        "replacement_execution_by_automation": { "type": "string", "const": "not_performed" },
+        "process_spawn": { "type": "string", "const": "not_performed" },
+        "evidence_ingest_only": { "type": "boolean", "const": true },
+        "requires_human_real_run_result": { "type": "boolean", "const": true },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "license_purchase": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" },
+        "publishing": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": { "type": "object", "additionalProperties": true },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "generation_status": { "type": "string" },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "human_real_run_result_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true },
+    "adapter": { "type": "string", "const": "local-editor-software-run-evidence-adapter" },
+    "adapter_version": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,23 @@
+id: wechat
+name: WeChat Official Account Plugin
+platform: 微信公众号
+agents:
+  - wechat-article-agent
+inputs:
+  - master_outline.md
+  - research_report.md
+  - sources.json
+outputs:
+  - wechat/article.md
+  - wechat/title_options.json
+  - wechat/layout_notes.md
+validators:
+  - validators/checklist.md
+human_approval:
+  - publish
+  - use_sensitive_claims
+  - use_uncleared_assets
+risk_notes:
+  - 法律、金融、医疗等内容必须标注非专业建议。
+  - 不得编造数据、案例、政策或来源。
+

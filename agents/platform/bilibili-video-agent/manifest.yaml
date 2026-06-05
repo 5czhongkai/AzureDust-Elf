@@ -1,0 +1,30 @@
+id: bilibili-video-agent
+name: Bilibili Video Agent
+layer: platform
+role: 生成B站长视频结构、分章节脚本、简介、标题和封面方向。
+inputs:
+  - master_outline.md
+  - asset_plan.json
+outputs:
+  - bilibili/script.md
+  - bilibili/chapters.json
+  - bilibili/description.md
+  - bilibili/storyboard.json
+  - bilibili/subtitles.srt
+  - bilibili/shot_list.json
+  - bilibili/broll_list.json
+  - bilibili/cover_prompt.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - fact-check-agent
+quality_gates:
+  - chapters_have_clear_progression
+  - intro_sets_expectation
+  - storyboard_matches_chapters
+  - shot_list_is_actionable
+  - broll_list_has_clear_rights_status
+  - no_auto_upload

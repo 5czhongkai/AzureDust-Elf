@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/licensed_media_replacement_suggestions.schema.json",
+  "title": "LicensedMediaReplacementSuggestions",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "manifest_path",
+    "replacement_suggestions_path",
+    "suggestions",
+    "summary",
+    "export_boundary",
+    "validation",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.licensed_media_replacement_suggestions.v1" },
+    "artifact_type": { "type": "string", "const": "licensed_media_replacement_suggestions" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "replacement_suggestions_path": { "type": "string" },
+    "suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "shot_replacement_target",
+          "reference_path",
+          "licensed_media_path",
+          "proxy_media_path",
+          "replacement_status",
+          "proxy_copy_status",
+          "editor_replacement_ready",
+          "instruction",
+          "manual_review_required"
+        ],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "shot_replacement_target": { "type": ["string", "null"] },
+          "reference_path": { "type": ["string", "null"] },
+          "licensed_media_path": { "type": ["string", "null"] },
+          "proxy_media_path": { "type": ["string", "null"] },
+          "replacement_status": {
+            "enum": [
+              "pending_human_media",
+              "candidate_registered_pending_review",
+              "blocked_registered_media_missing",
+              "proxy_ready_for_editor_replacement"
+            ]
+          },
+          "proxy_copy_status": { "type": "string" },
+          "editor_replacement_ready": { "type": "boolean" },
+          "instruction": { "type": "string" },
+          "manual_review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": { "type": "object", "additionalProperties": true },
+    "export_boundary": { "type": "object", "additionalProperties": true },
+    "validation": { "type": "object", "additionalProperties": true },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

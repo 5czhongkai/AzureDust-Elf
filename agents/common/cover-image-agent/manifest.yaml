@@ -1,0 +1,22 @@
+id: cover-image-agent
+name: Cover Image Agent
+layer: common
+role: 根据素材任务包生成平台封面图草稿，并写入待人工审核的封面元数据。
+inputs:
+  - assets/asset_generation_tasks.json
+  - cover_prompts.md
+outputs:
+  - assets/{platform}/cover/cover.png
+  - assets/{platform}/cover/cover_metadata.json
+tools:
+  - filesystem
+  - pillow
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - cover_image_is_generated_locally
+  - cover_metadata_marks_pending_human_review
+  - no_upload_or_publish

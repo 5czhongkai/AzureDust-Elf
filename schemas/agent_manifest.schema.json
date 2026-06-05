@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/agent_manifest.schema.json",
+  "title": "AgentManifest",
+  "type": "object",
+  "required": ["id", "name", "layer", "role", "inputs", "outputs", "tools", "permissions"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "layer": { "enum": ["orchestrator", "common", "platform", "validator", "repair"] },
+    "role": { "type": "string" },
+    "inputs": { "type": "array", "items": { "type": "string" } },
+    "outputs": { "type": "array", "items": { "type": "string" } },
+    "tools": { "type": "array", "items": { "type": "string" } },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "handoffs": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "quality_gates": { "type": "array", "items": { "type": "string" }, "default": [] }
+  },
+  "additionalProperties": false
+}
+

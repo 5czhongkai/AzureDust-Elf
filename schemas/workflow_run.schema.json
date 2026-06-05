@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/workflow_run.schema.json",
+  "title": "WorkflowRun",
+  "type": "object",
+  "required": ["run_id", "workflow_id", "status", "created_at", "tasks", "artifacts"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "workflow_id": { "type": "string" },
+    "workflow": { "type": "object", "additionalProperties": true },
+    "status": {
+      "enum": ["PENDING", "ASSIGNED", "RUNNING", "VALIDATING", "PASSED", "FAILED", "REPAIRING", "NEEDS_HUMAN", "DONE", "ARCHIVED"]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "topic": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["wechat", "xiaohongshu", "douyin", "shipinhao", "bilibili"] }
+    },
+    "input_attachments": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true },
+      "default": []
+    },
+    "tasks": {
+      "type": "array",
+      "items": { "$ref": "task_spec.schema.json" }
+    },
+    "task_runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "step_id", "agent", "status", "started_at", "ended_at", "artifact_paths"],
+        "properties": {
+          "task_id": { "type": "string" },
+          "step_id": { "type": "string" },
+          "agent": { "type": "string" },
+          "status": { "enum": ["PASSED", "FAILED", "SKIPPED"] },
+          "started_at": { "type": "string", "format": "date-time" },
+          "ended_at": { "type": "string", "format": "date-time" },
+          "artifact_paths": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "log_path": { "type": "string" },
+          "execution_mode": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "default": []
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "failure_type", "message"],
+        "properties": {
+          "task_id": { "type": "string" },
+          "failure_type": {
+            "enum": ["ENV_ERROR", "DATA_ERROR", "SCHEMA_ERROR", "QUALITY_ERROR", "POLICY_ERROR", "PERMISSION_ERROR"]
+          },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "retry_events": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true },
+      "default": []
+    },
+    "repair_log": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true },
+      "default": []
+    },
+    "note": { "type": "string" }
+  },
+  "additionalProperties": false
+}

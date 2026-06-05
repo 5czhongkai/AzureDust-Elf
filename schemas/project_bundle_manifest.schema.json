@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/project_bundle_manifest.schema.json",
+  "title": "ProjectBundleManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "bundle_format",
+    "bundle_path",
+    "manifest_path",
+    "file_manifest_path",
+    "readme_path",
+    "source_artifacts",
+    "deliverables",
+    "bundle_summary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.project_bundle_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "project_bundle" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-project-bundle-adapter" },
+    "adapter_version": { "type": "string" },
+    "bundle_format": { "type": "string", "const": "zip" },
+    "bundle_path": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "file_manifest_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "deliverables": {
+      "type": "object",
+      "required": ["bundle_zip", "bundle_manifest", "file_manifest", "bundle_readme"],
+      "properties": {
+        "bundle_zip": { "type": "string" },
+        "bundle_manifest": { "type": "string" },
+        "file_manifest": { "type": "string" },
+        "bundle_readme": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "bundle_summary": {
+      "type": "object",
+      "required": ["file_count", "required_missing_count", "bundle_bytes"],
+      "properties": {
+        "file_count": { "type": "number" },
+        "required_missing_count": { "type": "number" },
+        "bundle_bytes": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["status", "required_files_present", "required_missing_count", "file_count", "bundle_bytes", "offline_broll_count"],
+      "properties": {
+        "status": { "type": "string" },
+        "required_files_present": { "type": "boolean" },
+        "required_missing_count": { "type": "number" },
+        "file_count": { "type": "number" },
+        "bundle_bytes": { "type": "number" },
+        "offline_broll_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": { "type": "string", "const": "generated_local_project_bundle_pending_human_review" },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_notes": { "type": "array", "items": { "type": "string" } },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

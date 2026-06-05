@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/export_project_manifest.schema.json",
+  "title": "ExportProjectManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "project_format",
+    "project_path",
+    "readme_path",
+    "offline_report_path",
+    "manifest_path",
+    "duration_seconds",
+    "frame_rate",
+    "source_artifacts",
+    "deliverables",
+    "track_summary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.export_project_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "export_project" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-export-project-adapter" },
+    "adapter_version": { "type": "string" },
+    "project_format": { "type": "string", "const": "fcpxml" },
+    "project_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "offline_report_path": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "duration_seconds": { "type": "number" },
+    "frame_rate": { "type": "number" },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "deliverables": {
+      "type": "object",
+      "required": ["fcpxml", "import_readme", "offline_media_report", "manifest", "subtitle_sidecar", "edit_timeline", "draft_cut_edl"],
+      "properties": {
+        "fcpxml": { "type": "string" },
+        "import_readme": { "type": "string" },
+        "offline_media_report": { "type": "string" },
+        "manifest": { "type": "string" },
+        "subtitle_sidecar": { "type": "string" },
+        "edit_timeline": { "type": "string" },
+        "draft_cut_edl": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "track_summary": {
+      "type": "object",
+      "required": ["video_clips", "audio_clips", "subtitle_clips", "offline_broll_slots"],
+      "properties": {
+        "video_clips": { "type": "number" },
+        "audio_clips": { "type": "number" },
+        "subtitle_clips": { "type": "number" },
+        "offline_broll_slots": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["status", "fcpxml_well_formed", "referenced_media_files_exist", "offline_broll_count", "video_clip_count", "audio_clip_count", "subtitle_clip_count"],
+      "properties": {
+        "status": { "type": "string" },
+        "fcpxml_well_formed": { "type": "boolean" },
+        "referenced_media_files_exist": { "type": "boolean" },
+        "offline_broll_count": { "type": "number" },
+        "video_clip_count": { "type": "number" },
+        "audio_clip_count": { "type": "number" },
+        "subtitle_clip_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": { "type": "string", "const": "generated_local_export_project_pending_human_review" },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_notes": { "type": "array", "items": { "type": "string" } },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

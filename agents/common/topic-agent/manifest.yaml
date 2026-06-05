@@ -1,0 +1,20 @@
+id: topic-agent
+name: Topic Agent
+layer: common
+role: 基于研究报告生成选题池、切入角度、目标受众痛点和优先级。
+inputs:
+  - research_report.md
+  - sources.json
+outputs:
+  - angle_pack.json
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - outline-agent
+quality_gates:
+  - every_angle_has_audience_and_hook
+  - angles_reference_research_findings
+

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/licensed_media_proxy_bundle_manifest.schema.json",
+  "title": "LicensedMediaProxyBundleManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "manifest_path",
+    "video_production_package",
+    "platforms",
+    "source_artifacts",
+    "platform_proxies",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.licensed_media_proxy_bundle_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "licensed_media_proxy_bundle" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "manifest_path": { "type": "string", "const": "final/licensed_media_proxy_manifest.json" },
+    "video_production_package": { "type": "string", "const": "final/video_production_package.json" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["douyin", "shipinhao", "bilibili"] }
+    },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "platform_proxies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "platform_label",
+          "manifest_path",
+          "replacement_suggestions_path",
+          "readme_path",
+          "proxy_dir",
+          "required_final_media_count",
+          "ready_source_media_count",
+          "proxy_copied_count",
+          "pending_human_media_count",
+          "candidate_pending_review_count",
+          "blocked_proxy_count",
+          "editor_replacement_ready_count",
+          "proxy_media_paths",
+          "licensed_media_paths",
+          "license_proof_paths",
+          "ready_asset_ids",
+          "pending_asset_ids",
+          "candidate_asset_ids",
+          "blocked_asset_ids",
+          "validation",
+          "source_artifacts",
+          "review_required"
+        ],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "manifest_path": { "type": ["string", "null"] },
+          "replacement_suggestions_path": { "type": ["string", "null"] },
+          "readme_path": { "type": ["string", "null"] },
+          "proxy_dir": { "type": ["string", "null"] },
+          "required_final_media_count": { "type": "number" },
+          "ready_source_media_count": { "type": "number" },
+          "proxy_copied_count": { "type": "number" },
+          "pending_human_media_count": { "type": "number" },
+          "candidate_pending_review_count": { "type": "number" },
+          "blocked_proxy_count": { "type": "number" },
+          "editor_replacement_ready_count": { "type": "number" },
+          "proxy_media_paths": { "type": "array", "items": { "type": "string" } },
+          "licensed_media_paths": { "type": "array", "items": { "type": "string" } },
+          "license_proof_paths": { "type": "array", "items": { "type": "string" } },
+          "ready_asset_ids": { "type": "array", "items": { "type": "string" } },
+          "pending_asset_ids": { "type": "array", "items": { "type": "string" } },
+          "candidate_asset_ids": { "type": "array", "items": { "type": "string" } },
+          "blocked_asset_ids": { "type": "array", "items": { "type": "string" } },
+          "validation": {
+            "type": "object",
+            "required": [
+              "status",
+              "proxy_copy_complete_for_ready_media",
+              "editor_replacement_ready_count"
+            ],
+            "properties": {
+              "status": { "type": ["string", "null"] },
+              "proxy_copy_complete_for_ready_media": { "type": "boolean" },
+              "editor_replacement_ready_count": { "type": "number" }
+            },
+            "additionalProperties": false
+          },
+          "source_artifacts": { "type": "array", "items": { "type": "string" } },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "licensed_media_proxy",
+        "asset_download",
+        "external_asset_search",
+        "license_purchase",
+        "editing_software",
+        "publishing",
+        "upload"
+      ],
+      "properties": {
+        "licensed_media_proxy": { "type": "string", "const": "performed_locally_from_human_registered_media_only" },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "license_purchase": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened" },
+        "publishing": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "platform_count",
+        "passed_platform_count",
+        "required_final_media_count",
+        "ready_source_media_count",
+        "proxy_copied_count",
+        "pending_human_media_count",
+        "candidate_pending_review_count",
+        "blocked_proxy_count",
+        "editor_replacement_ready_count",
+        "proxy_copy_complete_for_ready_media"
+      ],
+      "properties": {
+        "status": { "type": "string" },
+        "platform_count": { "type": "number" },
+        "passed_platform_count": { "type": "number" },
+        "required_final_media_count": { "type": "number" },
+        "ready_source_media_count": { "type": "number" },
+        "proxy_copied_count": { "type": "number" },
+        "pending_human_media_count": { "type": "number" },
+        "candidate_pending_review_count": { "type": "number" },
+        "blocked_proxy_count": { "type": "number" },
+        "editor_replacement_ready_count": { "type": "number" },
+        "proxy_copy_complete_for_ready_media": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_proxy_bundle_pending_editor_review"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,22 @@
+id: xiaohongshu
+name: Xiaohongshu Note Plugin
+platform: 小红书
+agents:
+  - xiaohongshu-note-agent
+inputs:
+  - master_outline.md
+  - research_report.md
+outputs:
+  - xiaohongshu/note.json
+  - xiaohongshu/cover_prompt.md
+validators:
+  - validators/checklist.md
+human_approval:
+  - login
+  - refresh_cookie
+  - publish
+  - upload_assets
+risk_notes:
+  - 小红书页面和接口经常变化，采集与发布逻辑必须可恢复。
+  - 涉及 AI 生成内容时必须显式考虑平台标注要求。
+

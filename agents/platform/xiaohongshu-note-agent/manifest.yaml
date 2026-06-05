@@ -1,0 +1,23 @@
+id: xiaohongshu-note-agent
+name: Xiaohongshu Note Agent
+layer: platform
+role: 生成小红书标题、正文、标签、封面提示词、发布时间建议。
+inputs:
+  - master_outline.md
+  - research_report.md
+outputs:
+  - xiaohongshu/note.json
+  - xiaohongshu/cover_prompt.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - fact-check-agent
+quality_gates:
+  - title_under_20_chinese_chars
+  - content_between_300_and_600_chinese_chars
+  - ai_generated_label_considered
+  - no_publish_without_approval
+

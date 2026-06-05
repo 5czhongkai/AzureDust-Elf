@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/platform_outputs/xiaohongshu_note.schema.json",
+  "title": "XiaohongshuNoteOutput",
+  "type": "object",
+  "required": ["title", "content", "tags", "cover_prompt", "best_time", "cta", "review_required"],
+  "properties": {
+    "title": { "type": "string", "maxLength": 20 },
+    "content": { "type": "string", "minLength": 100 },
+    "tags": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 8,
+      "items": { "type": "string" }
+    },
+    "cover_prompt": { "type": "string" },
+    "best_time": { "type": "string" },
+    "cta": { "type": "string" },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}
+

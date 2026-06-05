@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/supervision_snapshot.schema.json",
+  "title": "SupervisionSnapshot",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "run", "summary", "current_step", "stale_detector", "retry_policy", "repair_log", "tasks", "failures", "artifact_health", "workflow_graph", "next_actions"],
+  "properties": {
+    "schema_version": { "const": "phase3.supervision.v1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "run": {
+      "type": "object",
+      "required": ["run_id", "workflow_id", "status", "run_dir"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "workflow_id": { "type": "string" },
+        "topic": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": {
+          "enum": ["PENDING", "ASSIGNED", "RUNNING", "VALIDATING", "PASSED", "FAILED", "REPAIRING", "NEEDS_HUMAN", "DONE", "ARCHIVED"]
+        },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "run_dir": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["status", "total_steps", "completed_steps", "passed", "failed", "skipped", "pending", "running", "failure_count", "stale_count", "interrupted_count", "recoverable_count", "watch_count", "auto_retry_count", "retry_event_count", "repair_count", "manual_repair_count", "pending_approval_count", "progress_percent"],
+      "properties": {
+        "status": { "type": "string" },
+        "total_steps": { "type": "integer", "minimum": 0 },
+        "completed_steps": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "pending": { "type": "integer", "minimum": 0 },
+        "running": { "type": "integer", "minimum": 0 },
+        "failure_count": { "type": "integer", "minimum": 0 },
+        "stale_count": { "type": "integer", "minimum": 0 },
+        "interrupted_count": { "type": "integer", "minimum": 0 },
+        "recoverable_count": { "type": "integer", "minimum": 0 },
+        "watch_count": { "type": "integer", "minimum": 0 },
+        "auto_retry_count": { "type": "integer", "minimum": 0 },
+        "retry_event_count": { "type": "integer", "minimum": 0 },
+        "repair_count": { "type": "integer", "minimum": 0 },
+        "manual_repair_count": { "type": "integer", "minimum": 0 },
+        "pending_approval_count": { "type": "integer", "minimum": 0 },
+        "progress_percent": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "current_step": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "stale_detector": {
+      "type": "object",
+      "required": ["config", "detected_at", "summary", "stale_tasks", "watch_tasks", "recoverable_faults"],
+      "properties": {
+        "config": {
+          "type": "object",
+          "required": ["enabled", "threshold_minutes"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "threshold_minutes": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "detected_at": { "type": "string", "format": "date-time" },
+        "summary": {
+          "type": "object",
+          "required": ["threshold_minutes", "detected_at", "workflow_status", "workflow_active", "task_count", "running_count", "watch_count", "stale_count", "interrupted_count", "recoverable_count"],
+          "properties": {
+            "threshold_minutes": { "type": "number", "minimum": 0 },
+            "detected_at": { "type": "string", "format": "date-time" },
+            "workflow_status": { "type": "string" },
+            "workflow_active": { "type": "boolean" },
+            "task_count": { "type": "integer", "minimum": 0 },
+            "running_count": { "type": "integer", "minimum": 0 },
+            "watch_count": { "type": "integer", "minimum": 0 },
+            "stale_count": { "type": "integer", "minimum": 0 },
+            "interrupted_count": { "type": "integer", "minimum": 0 },
+            "recoverable_count": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "stale_tasks": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "watch_tasks": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "recoverable_faults": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": false
+    },
+    "retry_policy": {
+      "type": "object",
+      "required": ["config", "summary", "events"],
+      "properties": {
+        "config": {
+          "type": "object",
+          "required": ["enabled", "max_auto_retries", "retryable_categories", "retryable_recovery_states"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "max_auto_retries": { "type": "integer", "minimum": 0 },
+            "retryable_categories": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "retryable_recovery_states": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "summary": {
+          "type": "object",
+          "required": ["enabled", "max_auto_retries", "retryable_failure_count", "auto_retry_count", "event_count"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "max_auto_retries": { "type": "integer", "minimum": 0 },
+            "retryable_failure_count": { "type": "integer", "minimum": 0 },
+            "auto_retry_count": { "type": "integer", "minimum": 0 },
+            "event_count": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": false
+    },
+    "repair_log": {
+      "type": "object",
+      "required": ["summary", "entries"],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "required": ["repair_count", "manual_required_count", "pending_approval_count", "approved_repair_count", "rejected_repair_count", "failed_repair_count"],
+          "properties": {
+            "repair_count": { "type": "integer", "minimum": 0 },
+            "manual_required_count": { "type": "integer", "minimum": 0 },
+            "pending_approval_count": { "type": "integer", "minimum": 0 },
+            "approved_repair_count": { "type": "integer", "minimum": 0 },
+            "rejected_repair_count": { "type": "integer", "minimum": 0 },
+            "failed_repair_count": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "entries": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["order", "step_id", "agent", "status", "attempt_count", "expected_outputs", "artifact_health", "health"],
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "task_id": { "type": ["string", "null"] },
+          "step_id": { "type": "string" },
+          "agent": { "type": "string" },
+          "platform": { "type": ["string", "null"] },
+          "parallel_group": { "type": ["string", "null"] },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "status": { "enum": ["PENDING", "RUNNING", "PASSED", "FAILED", "SKIPPED"] },
+          "attempt_count": { "type": "integer", "minimum": 0 },
+          "started_at": { "type": ["string", "null"] },
+          "ended_at": { "type": ["string", "null"] },
+          "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+          "log_path": { "type": ["string", "null"] },
+          "log_exists": { "type": "boolean" },
+          "expected_outputs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "artifact_health": {
+            "type": "object",
+            "required": ["status", "expected", "present", "missing"],
+            "properties": {
+              "status": { "enum": ["complete", "missing", "none", "not_required_yet"] },
+              "expected": { "type": "integer", "minimum": 0 },
+              "present": { "type": "integer", "minimum": 0 },
+              "missing": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": false
+          },
+          "health": {
+            "type": "object",
+            "required": ["state", "recoverable", "reason", "workflow_status", "threshold_minutes", "detected_at", "recommended_action"],
+            "properties": {
+              "state": { "enum": ["complete", "failed", "skipped", "unknown", "watch", "stale", "interrupted"] },
+              "recoverable": { "type": "boolean" },
+              "reason": { "type": "string" },
+              "workflow_status": { "type": "string" },
+              "threshold_minutes": { "type": "number", "minimum": 0 },
+              "age_minutes": { "type": ["number", "null"], "minimum": 0 },
+              "detected_at": { "type": "string", "format": "date-time" },
+              "failure_category": { "type": ["string", "null"] },
+              "failure_message": { "type": ["string", "null"] },
+              "recommended_action": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "failure": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "attempts": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "artifact_health": {
+      "type": "object",
+      "required": ["expected", "present", "missing", "status"],
+      "properties": {
+        "expected": { "type": "integer", "minimum": 0 },
+        "present": { "type": "integer", "minimum": 0 },
+        "missing": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": { "enum": ["complete", "missing"] }
+      },
+      "additionalProperties": false
+    },
+    "workflow_graph": {
+      "type": "object",
+      "required": ["mermaid"],
+      "properties": {
+        "mermaid": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "monitor_files": {
+      "type": "object",
+      "properties": {
+        "snapshot": { "type": "string" },
+        "report": { "type": "string" },
+        "dashboard": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

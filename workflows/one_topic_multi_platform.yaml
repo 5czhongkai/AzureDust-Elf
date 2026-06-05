@@ -1,0 +1,730 @@
+id: one_topic_multi_platform
+name: One Topic Multi Platform Content Package
+version: 0.0.0
+description: Generate WeChat, Xiaohongshu, Douyin, Shipinhao, and Bilibili content packages from one topic.
+inputs:
+  - brief.topic
+  - brief.audience
+  - brief.goal
+  - brief.constraints
+steps:
+  - id: research
+    agent: research-agent
+    depends_on: []
+    outputs:
+      - research_report.md
+      - sources.json
+
+  - id: topic_angles
+    agent: topic-agent
+    depends_on: [research]
+    outputs:
+      - angle_pack.json
+
+  - id: master_outline
+    agent: outline-agent
+    depends_on: [topic_angles]
+    outputs:
+      - master_outline.md
+
+  - id: visual_assets
+    agent: asset-agent
+    depends_on: [master_outline]
+    outputs:
+      - asset_plan.json
+      - cover_prompts.md
+      - assets/asset_generation_tasks.json
+      - assets/media_asset_manifest.json
+      - assets/asset_ingest_guide.md
+
+  - id: douyin_cover_image
+    agent: cover-image-agent
+    platform: douyin
+    depends_on: [visual_assets]
+    parallel_group: media_assets
+    outputs:
+      - assets/douyin/cover/cover.png
+      - assets/douyin/cover/cover_metadata.json
+
+  - id: shipinhao_cover_image
+    agent: cover-image-agent
+    platform: shipinhao
+    depends_on: [visual_assets]
+    parallel_group: media_assets
+    outputs:
+      - assets/shipinhao/cover/cover.png
+      - assets/shipinhao/cover/cover_metadata.json
+
+  - id: bilibili_cover_image
+    agent: cover-image-agent
+    platform: bilibili
+    depends_on: [visual_assets]
+    parallel_group: media_assets
+    outputs:
+      - assets/bilibili/cover/cover.png
+      - assets/bilibili/cover/cover_metadata.json
+
+  - id: wechat_article
+    agent: wechat-article-agent
+    platform: wechat
+    depends_on: [master_outline]
+    parallel_group: platform_outputs
+    outputs:
+      - wechat/article.md
+      - wechat/title_options.json
+
+  - id: xiaohongshu_note
+    agent: xiaohongshu-note-agent
+    platform: xiaohongshu
+    depends_on: [master_outline]
+    parallel_group: platform_outputs
+    outputs:
+      - xiaohongshu/note.json
+      - xiaohongshu/cover_prompt.md
+
+  - id: douyin_video
+    agent: douyin-video-agent
+    platform: douyin
+    depends_on: [master_outline, visual_assets, douyin_cover_image]
+    parallel_group: platform_outputs
+    outputs:
+      - douyin/script.md
+      - douyin/storyboard.json
+      - douyin/subtitles.srt
+      - douyin/shot_list.json
+      - douyin/broll_list.json
+      - douyin/cover_prompt.md
+
+  - id: shipinhao_video
+    agent: shipinhao-video-agent
+    platform: shipinhao
+    depends_on: [master_outline, visual_assets, shipinhao_cover_image]
+    parallel_group: platform_outputs
+    outputs:
+      - shipinhao/script.md
+      - shipinhao/storyboard.json
+      - shipinhao/subtitles.srt
+      - shipinhao/cover_prompt.md
+      - shipinhao/shot_list.json
+      - shipinhao/broll_list.json
+
+  - id: bilibili_video
+    agent: bilibili-video-agent
+    platform: bilibili
+    depends_on: [master_outline, visual_assets, bilibili_cover_image]
+    parallel_group: platform_outputs
+    outputs:
+      - bilibili/script.md
+      - bilibili/chapters.json
+      - bilibili/description.md
+      - bilibili/storyboard.json
+      - bilibili/subtitles.srt
+      - bilibili/shot_list.json
+      - bilibili/broll_list.json
+      - bilibili/cover_prompt.md
+
+  - id: douyin_storyboard_preview
+    agent: storyboard-preview-agent
+    platform: douyin
+    depends_on: [visual_assets, douyin_video]
+    parallel_group: storyboard_previews
+    outputs:
+      - assets/douyin/storyboard/storyboard_preview.png
+      - assets/douyin/storyboard/storyboard_preview_metadata.json
+      - assets/douyin/storyboard/douyin_01.png
+      - assets/douyin/storyboard/douyin_02.png
+      - assets/douyin/storyboard/douyin_03.png
+      - assets/douyin/storyboard/douyin_04.png
+      - assets/douyin/storyboard/douyin_05.png
+      - assets/douyin/storyboard/douyin_06.png
+
+  - id: shipinhao_storyboard_preview
+    agent: storyboard-preview-agent
+    platform: shipinhao
+    depends_on: [visual_assets, shipinhao_video]
+    parallel_group: storyboard_previews
+    outputs:
+      - assets/shipinhao/storyboard/storyboard_preview.png
+      - assets/shipinhao/storyboard/storyboard_preview_metadata.json
+      - assets/shipinhao/storyboard/shipinhao_01.png
+      - assets/shipinhao/storyboard/shipinhao_02.png
+      - assets/shipinhao/storyboard/shipinhao_03.png
+      - assets/shipinhao/storyboard/shipinhao_04.png
+      - assets/shipinhao/storyboard/shipinhao_05.png
+      - assets/shipinhao/storyboard/shipinhao_06.png
+
+  - id: bilibili_storyboard_preview
+    agent: storyboard-preview-agent
+    platform: bilibili
+    depends_on: [visual_assets, bilibili_video]
+    parallel_group: storyboard_previews
+    outputs:
+      - assets/bilibili/storyboard/storyboard_preview.png
+      - assets/bilibili/storyboard/storyboard_preview_metadata.json
+      - assets/bilibili/storyboard/bili_01.png
+      - assets/bilibili/storyboard/bili_02.png
+      - assets/bilibili/storyboard/bili_03.png
+      - assets/bilibili/storyboard/bili_04.png
+      - assets/bilibili/storyboard/bili_05.png
+      - assets/bilibili/storyboard/bili_06.png
+
+  - id: douyin_asset_materialization
+    agent: asset-materialization-agent
+    platform: douyin
+    depends_on: [visual_assets, douyin_video]
+    parallel_group: asset_materialization
+    outputs:
+      - assets/douyin/materials/material_manifest.json
+      - assets/douyin/materials/README.md
+      - assets/douyin/materials/workflow_board_reference.png
+      - assets/douyin/materials/task_ledger_closeup_reference.png
+      - assets/douyin/materials/vertical_caption_overlay_reference.png
+
+  - id: shipinhao_asset_materialization
+    agent: asset-materialization-agent
+    platform: shipinhao
+    depends_on: [visual_assets, shipinhao_video]
+    parallel_group: asset_materialization
+    outputs:
+      - assets/shipinhao/materials/material_manifest.json
+      - assets/shipinhao/materials/README.md
+      - assets/shipinhao/materials/workflow_board_reference.png
+      - assets/shipinhao/materials/task_ledger_closeup_reference.png
+      - assets/shipinhao/materials/vertical_caption_overlay_reference.png
+
+  - id: bilibili_asset_materialization
+    agent: asset-materialization-agent
+    platform: bilibili
+    depends_on: [visual_assets, bilibili_video]
+    parallel_group: asset_materialization
+    outputs:
+      - assets/bilibili/materials/material_manifest.json
+      - assets/bilibili/materials/README.md
+      - assets/bilibili/materials/workflow_board_reference.png
+      - assets/bilibili/materials/task_ledger_closeup_reference.png
+      - assets/bilibili/materials/chapter_timeline_reference.png
+
+  - id: douyin_subtitle_timing
+    agent: subtitle-timing-agent
+    platform: douyin
+    depends_on: [douyin_video, douyin_storyboard_preview]
+    parallel_group: subtitle_timing
+    outputs:
+      - douyin/timed_subtitles.json
+      - douyin/timed_subtitles.srt
+
+  - id: shipinhao_subtitle_timing
+    agent: subtitle-timing-agent
+    platform: shipinhao
+    depends_on: [shipinhao_video, shipinhao_storyboard_preview]
+    parallel_group: subtitle_timing
+    outputs:
+      - shipinhao/timed_subtitles.json
+      - shipinhao/timed_subtitles.srt
+
+  - id: bilibili_subtitle_timing
+    agent: subtitle-timing-agent
+    platform: bilibili
+    depends_on: [bilibili_video, bilibili_storyboard_preview]
+    parallel_group: subtitle_timing
+    outputs:
+      - bilibili/timed_subtitles.json
+      - bilibili/timed_subtitles.srt
+
+  - id: douyin_voiceover_tts
+    agent: voiceover-tts-agent
+    platform: douyin
+    depends_on: [douyin_subtitle_timing]
+    parallel_group: voiceover_tts
+    outputs:
+      - assets/douyin/voiceover/voiceover.wav
+      - assets/douyin/voiceover/voiceover_manifest.json
+
+  - id: shipinhao_voiceover_tts
+    agent: voiceover-tts-agent
+    platform: shipinhao
+    depends_on: [shipinhao_subtitle_timing]
+    parallel_group: voiceover_tts
+    outputs:
+      - assets/shipinhao/voiceover/voiceover.wav
+      - assets/shipinhao/voiceover/voiceover_manifest.json
+
+  - id: bilibili_voiceover_tts
+    agent: voiceover-tts-agent
+    platform: bilibili
+    depends_on: [bilibili_subtitle_timing]
+    parallel_group: voiceover_tts
+    outputs:
+      - assets/bilibili/voiceover/voiceover.wav
+      - assets/bilibili/voiceover/voiceover_manifest.json
+
+  - id: douyin_licensed_media_ingest
+    agent: licensed-media-ingest-agent
+    platform: douyin
+    depends_on: [douyin_asset_materialization]
+    parallel_group: licensed_media_ingest
+    outputs:
+      - assets/douyin/licensed_media/ingest_manifest.json
+      - assets/douyin/licensed_media/README.md
+      - assets/douyin/licensed_media/review_handoff.md
+
+  - id: douyin_licensed_media_proxy
+    agent: licensed-media-proxy-agent
+    platform: douyin
+    depends_on: [douyin_licensed_media_ingest]
+    parallel_group: licensed_media_proxy
+    outputs:
+      - assets/douyin/licensed_media/proxy_manifest.json
+      - assets/douyin/licensed_media/replacement_suggestions.json
+      - assets/douyin/licensed_media/proxy/README.md
+
+  - id: shipinhao_licensed_media_ingest
+    agent: licensed-media-ingest-agent
+    platform: shipinhao
+    depends_on: [shipinhao_asset_materialization]
+    parallel_group: licensed_media_ingest
+    outputs:
+      - assets/shipinhao/licensed_media/ingest_manifest.json
+      - assets/shipinhao/licensed_media/README.md
+      - assets/shipinhao/licensed_media/review_handoff.md
+
+  - id: shipinhao_licensed_media_proxy
+    agent: licensed-media-proxy-agent
+    platform: shipinhao
+    depends_on: [shipinhao_licensed_media_ingest]
+    parallel_group: licensed_media_proxy
+    outputs:
+      - assets/shipinhao/licensed_media/proxy_manifest.json
+      - assets/shipinhao/licensed_media/replacement_suggestions.json
+      - assets/shipinhao/licensed_media/proxy/README.md
+
+  - id: bilibili_licensed_media_ingest
+    agent: licensed-media-ingest-agent
+    platform: bilibili
+    depends_on: [bilibili_asset_materialization]
+    parallel_group: licensed_media_ingest
+    outputs:
+      - assets/bilibili/licensed_media/ingest_manifest.json
+      - assets/bilibili/licensed_media/README.md
+      - assets/bilibili/licensed_media/review_handoff.md
+
+  - id: bilibili_licensed_media_proxy
+    agent: licensed-media-proxy-agent
+    platform: bilibili
+    depends_on: [bilibili_licensed_media_ingest]
+    parallel_group: licensed_media_proxy
+    outputs:
+      - assets/bilibili/licensed_media/proxy_manifest.json
+      - assets/bilibili/licensed_media/replacement_suggestions.json
+      - assets/bilibili/licensed_media/proxy/README.md
+
+  - id: douyin_edit_project
+    agent: edit-project-agent
+    platform: douyin
+    depends_on: [douyin_storyboard_preview, douyin_voiceover_tts, douyin_asset_materialization, douyin_licensed_media_ingest, douyin_licensed_media_proxy]
+    parallel_group: edit_projects
+    outputs:
+      - assets/douyin/edit/edit_timeline.json
+      - assets/douyin/edit/edit_manifest.json
+      - assets/douyin/edit/draft_cut.edl
+
+  - id: shipinhao_edit_project
+    agent: edit-project-agent
+    platform: shipinhao
+    depends_on: [shipinhao_storyboard_preview, shipinhao_voiceover_tts, shipinhao_asset_materialization, shipinhao_licensed_media_ingest, shipinhao_licensed_media_proxy]
+    parallel_group: edit_projects
+    outputs:
+      - assets/shipinhao/edit/edit_timeline.json
+      - assets/shipinhao/edit/edit_manifest.json
+      - assets/shipinhao/edit/draft_cut.edl
+
+  - id: bilibili_edit_project
+    agent: edit-project-agent
+    platform: bilibili
+    depends_on: [bilibili_storyboard_preview, bilibili_voiceover_tts, bilibili_asset_materialization, bilibili_licensed_media_ingest, bilibili_licensed_media_proxy]
+    parallel_group: edit_projects
+    outputs:
+      - assets/bilibili/edit/edit_timeline.json
+      - assets/bilibili/edit/edit_manifest.json
+      - assets/bilibili/edit/draft_cut.edl
+
+  - id: douyin_export_project
+    agent: export-project-agent
+    platform: douyin
+    depends_on: [douyin_edit_project]
+    parallel_group: export_projects
+    outputs:
+      - assets/douyin/edit/project.fcpxml
+      - assets/douyin/edit/import_readme.md
+      - assets/douyin/edit/offline_media_report.json
+      - assets/douyin/edit/export_manifest.json
+
+  - id: shipinhao_export_project
+    agent: export-project-agent
+    platform: shipinhao
+    depends_on: [shipinhao_edit_project]
+    parallel_group: export_projects
+    outputs:
+      - assets/shipinhao/edit/project.fcpxml
+      - assets/shipinhao/edit/import_readme.md
+      - assets/shipinhao/edit/offline_media_report.json
+      - assets/shipinhao/edit/export_manifest.json
+
+  - id: bilibili_export_project
+    agent: export-project-agent
+    platform: bilibili
+    depends_on: [bilibili_edit_project]
+    parallel_group: export_projects
+    outputs:
+      - assets/bilibili/edit/project.fcpxml
+      - assets/bilibili/edit/import_readme.md
+      - assets/bilibili/edit/offline_media_report.json
+      - assets/bilibili/edit/export_manifest.json
+
+  - id: douyin_editor_replacement_instructions
+    agent: editor-replacement-instructions-agent
+    platform: douyin
+    depends_on: [douyin_export_project, douyin_licensed_media_proxy]
+    parallel_group: editor_replacement_instructions
+    outputs:
+      - assets/douyin/edit/replacement_instructions/instruction_manifest.json
+      - assets/douyin/edit/replacement_instructions/replacement_commands.json
+      - assets/douyin/edit/replacement_instructions/editor_import_template.fcpxml
+      - assets/douyin/edit/replacement_instructions/human_confirmation_checklist.md
+      - assets/douyin/edit/replacement_instructions/README.md
+
+  - id: shipinhao_editor_replacement_instructions
+    agent: editor-replacement-instructions-agent
+    platform: shipinhao
+    depends_on: [shipinhao_export_project, shipinhao_licensed_media_proxy]
+    parallel_group: editor_replacement_instructions
+    outputs:
+      - assets/shipinhao/edit/replacement_instructions/instruction_manifest.json
+      - assets/shipinhao/edit/replacement_instructions/replacement_commands.json
+      - assets/shipinhao/edit/replacement_instructions/editor_import_template.fcpxml
+      - assets/shipinhao/edit/replacement_instructions/human_confirmation_checklist.md
+      - assets/shipinhao/edit/replacement_instructions/README.md
+
+  - id: bilibili_editor_replacement_instructions
+    agent: editor-replacement-instructions-agent
+    platform: bilibili
+    depends_on: [bilibili_export_project, bilibili_licensed_media_proxy]
+    parallel_group: editor_replacement_instructions
+    outputs:
+      - assets/bilibili/edit/replacement_instructions/instruction_manifest.json
+      - assets/bilibili/edit/replacement_instructions/replacement_commands.json
+      - assets/bilibili/edit/replacement_instructions/editor_import_template.fcpxml
+      - assets/bilibili/edit/replacement_instructions/human_confirmation_checklist.md
+      - assets/bilibili/edit/replacement_instructions/README.md
+
+  - id: douyin_editor_replacement_execution
+    agent: editor-replacement-execution-agent
+    platform: douyin
+    depends_on: [douyin_editor_replacement_instructions]
+    parallel_group: editor_replacement_execution
+    outputs:
+      - assets/douyin/edit/replacement_execution/execution_manifest.json
+      - assets/douyin/edit/replacement_execution/execution_plan.json
+      - assets/douyin/edit/replacement_execution/execution_audit_log.json
+      - assets/douyin/edit/replacement_execution/human_execution_approval_request.md
+      - assets/douyin/edit/replacement_execution/README.md
+
+  - id: shipinhao_editor_replacement_execution
+    agent: editor-replacement-execution-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_replacement_instructions]
+    parallel_group: editor_replacement_execution
+    outputs:
+      - assets/shipinhao/edit/replacement_execution/execution_manifest.json
+      - assets/shipinhao/edit/replacement_execution/execution_plan.json
+      - assets/shipinhao/edit/replacement_execution/execution_audit_log.json
+      - assets/shipinhao/edit/replacement_execution/human_execution_approval_request.md
+      - assets/shipinhao/edit/replacement_execution/README.md
+
+  - id: bilibili_editor_replacement_execution
+    agent: editor-replacement-execution-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_replacement_instructions]
+    parallel_group: editor_replacement_execution
+    outputs:
+      - assets/bilibili/edit/replacement_execution/execution_manifest.json
+      - assets/bilibili/edit/replacement_execution/execution_plan.json
+      - assets/bilibili/edit/replacement_execution/execution_audit_log.json
+      - assets/bilibili/edit/replacement_execution/human_execution_approval_request.md
+      - assets/bilibili/edit/replacement_execution/README.md
+
+  - id: douyin_editor_project_mutation_sandbox
+    agent: editor-project-mutation-sandbox-agent
+    platform: douyin
+    depends_on: [douyin_editor_replacement_execution]
+    parallel_group: editor_project_mutation_sandbox
+    outputs:
+      - assets/douyin/edit/mutation_sandbox/mutation_manifest.json
+      - assets/douyin/edit/mutation_sandbox/patched_project.fcpxml
+      - assets/douyin/edit/mutation_sandbox/mutation_diff.json
+      - assets/douyin/edit/mutation_sandbox/rollback_manifest.json
+      - assets/douyin/edit/mutation_sandbox/mutation_audit_log.json
+      - assets/douyin/edit/mutation_sandbox/human_final_review_checklist.md
+      - assets/douyin/edit/mutation_sandbox/README.md
+
+  - id: douyin_editor_software_import_executor
+    agent: editor-software-import-executor-agent
+    platform: douyin
+    depends_on: [douyin_editor_project_mutation_sandbox]
+    parallel_group: editor_software_import_executor
+    outputs:
+      - assets/douyin/edit/software_import_executor/import_executor_manifest.json
+      - assets/douyin/edit/software_import_executor/import_plan.json
+      - assets/douyin/edit/software_import_executor/import_commands.json
+      - assets/douyin/edit/software_import_executor/software_import_audit_log.json
+      - assets/douyin/edit/software_import_executor/rollback_safety_report.json
+      - assets/douyin/edit/software_import_executor/isolated_execution_request.md
+      - assets/douyin/edit/software_import_executor/README.md
+
+  - id: douyin_editor_software_real_runner_sandbox
+    agent: editor-software-real-runner-sandbox-agent
+    platform: douyin
+    depends_on: [douyin_editor_software_import_executor]
+    parallel_group: editor_software_real_runner_sandbox
+    outputs:
+      - assets/douyin/edit/software_real_runner_sandbox/runner_sandbox_manifest.json
+      - assets/douyin/edit/software_real_runner_sandbox/runner_environment_snapshot.json
+      - assets/douyin/edit/software_real_runner_sandbox/runner_launch_plan.json
+      - assets/douyin/edit/software_real_runner_sandbox/runner_command_preview.json
+      - assets/douyin/edit/software_real_runner_sandbox/runner_audit_log.json
+      - assets/douyin/edit/software_real_runner_sandbox/runner_evidence_manifest.json
+      - assets/douyin/edit/software_real_runner_sandbox/human_real_run_approval_request.md
+      - assets/douyin/edit/software_real_runner_sandbox/README.md
+
+  - id: douyin_editor_software_run_evidence
+    agent: editor-software-run-evidence-agent
+    platform: douyin
+    depends_on: [douyin_editor_software_real_runner_sandbox]
+    parallel_group: editor_software_run_evidence
+    outputs:
+      - assets/douyin/edit/software_run_evidence/real_run_evidence_manifest.json
+      - assets/douyin/edit/software_run_evidence/evidence_validation_report.json
+      - assets/douyin/edit/software_run_evidence/rollback_decision_report.json
+      - assets/douyin/edit/software_run_evidence/post_launch_evidence_checklist.md
+      - assets/douyin/edit/software_run_evidence/README.md
+
+  - id: shipinhao_editor_project_mutation_sandbox
+    agent: editor-project-mutation-sandbox-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_replacement_execution]
+    parallel_group: editor_project_mutation_sandbox
+    outputs:
+      - assets/shipinhao/edit/mutation_sandbox/mutation_manifest.json
+      - assets/shipinhao/edit/mutation_sandbox/patched_project.fcpxml
+      - assets/shipinhao/edit/mutation_sandbox/mutation_diff.json
+      - assets/shipinhao/edit/mutation_sandbox/rollback_manifest.json
+      - assets/shipinhao/edit/mutation_sandbox/mutation_audit_log.json
+      - assets/shipinhao/edit/mutation_sandbox/human_final_review_checklist.md
+      - assets/shipinhao/edit/mutation_sandbox/README.md
+
+  - id: shipinhao_editor_software_import_executor
+    agent: editor-software-import-executor-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_project_mutation_sandbox]
+    parallel_group: editor_software_import_executor
+    outputs:
+      - assets/shipinhao/edit/software_import_executor/import_executor_manifest.json
+      - assets/shipinhao/edit/software_import_executor/import_plan.json
+      - assets/shipinhao/edit/software_import_executor/import_commands.json
+      - assets/shipinhao/edit/software_import_executor/software_import_audit_log.json
+      - assets/shipinhao/edit/software_import_executor/rollback_safety_report.json
+      - assets/shipinhao/edit/software_import_executor/isolated_execution_request.md
+      - assets/shipinhao/edit/software_import_executor/README.md
+
+  - id: shipinhao_editor_software_real_runner_sandbox
+    agent: editor-software-real-runner-sandbox-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_software_import_executor]
+    parallel_group: editor_software_real_runner_sandbox
+    outputs:
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_sandbox_manifest.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_environment_snapshot.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_launch_plan.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_command_preview.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_audit_log.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/runner_evidence_manifest.json
+      - assets/shipinhao/edit/software_real_runner_sandbox/human_real_run_approval_request.md
+      - assets/shipinhao/edit/software_real_runner_sandbox/README.md
+
+  - id: shipinhao_editor_software_run_evidence
+    agent: editor-software-run-evidence-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_software_real_runner_sandbox]
+    parallel_group: editor_software_run_evidence
+    outputs:
+      - assets/shipinhao/edit/software_run_evidence/real_run_evidence_manifest.json
+      - assets/shipinhao/edit/software_run_evidence/evidence_validation_report.json
+      - assets/shipinhao/edit/software_run_evidence/rollback_decision_report.json
+      - assets/shipinhao/edit/software_run_evidence/post_launch_evidence_checklist.md
+      - assets/shipinhao/edit/software_run_evidence/README.md
+
+  - id: bilibili_editor_project_mutation_sandbox
+    agent: editor-project-mutation-sandbox-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_replacement_execution]
+    parallel_group: editor_project_mutation_sandbox
+    outputs:
+      - assets/bilibili/edit/mutation_sandbox/mutation_manifest.json
+      - assets/bilibili/edit/mutation_sandbox/patched_project.fcpxml
+      - assets/bilibili/edit/mutation_sandbox/mutation_diff.json
+      - assets/bilibili/edit/mutation_sandbox/rollback_manifest.json
+      - assets/bilibili/edit/mutation_sandbox/mutation_audit_log.json
+      - assets/bilibili/edit/mutation_sandbox/human_final_review_checklist.md
+      - assets/bilibili/edit/mutation_sandbox/README.md
+
+  - id: bilibili_editor_software_import_executor
+    agent: editor-software-import-executor-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_project_mutation_sandbox]
+    parallel_group: editor_software_import_executor
+    outputs:
+      - assets/bilibili/edit/software_import_executor/import_executor_manifest.json
+      - assets/bilibili/edit/software_import_executor/import_plan.json
+      - assets/bilibili/edit/software_import_executor/import_commands.json
+      - assets/bilibili/edit/software_import_executor/software_import_audit_log.json
+      - assets/bilibili/edit/software_import_executor/rollback_safety_report.json
+      - assets/bilibili/edit/software_import_executor/isolated_execution_request.md
+      - assets/bilibili/edit/software_import_executor/README.md
+
+  - id: bilibili_editor_software_real_runner_sandbox
+    agent: editor-software-real-runner-sandbox-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_software_import_executor]
+    parallel_group: editor_software_real_runner_sandbox
+    outputs:
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_sandbox_manifest.json
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_environment_snapshot.json
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_launch_plan.json
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_command_preview.json
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_audit_log.json
+      - assets/bilibili/edit/software_real_runner_sandbox/runner_evidence_manifest.json
+      - assets/bilibili/edit/software_real_runner_sandbox/human_real_run_approval_request.md
+      - assets/bilibili/edit/software_real_runner_sandbox/README.md
+
+  - id: bilibili_editor_software_run_evidence
+    agent: editor-software-run-evidence-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_software_real_runner_sandbox]
+    parallel_group: editor_software_run_evidence
+    outputs:
+      - assets/bilibili/edit/software_run_evidence/real_run_evidence_manifest.json
+      - assets/bilibili/edit/software_run_evidence/evidence_validation_report.json
+      - assets/bilibili/edit/software_run_evidence/rollback_decision_report.json
+      - assets/bilibili/edit/software_run_evidence/post_launch_evidence_checklist.md
+      - assets/bilibili/edit/software_run_evidence/README.md
+
+  - id: douyin_project_bundle
+    agent: project-bundle-agent
+    platform: douyin
+    depends_on: [douyin_editor_software_run_evidence]
+    parallel_group: project_bundles
+    outputs:
+      - assets/douyin/bundle/project_bundle.zip
+      - assets/douyin/bundle/project_bundle_manifest.json
+      - assets/douyin/bundle/file_manifest.json
+      - assets/douyin/bundle/README.md
+
+  - id: shipinhao_project_bundle
+    agent: project-bundle-agent
+    platform: shipinhao
+    depends_on: [shipinhao_editor_software_run_evidence]
+    parallel_group: project_bundles
+    outputs:
+      - assets/shipinhao/bundle/project_bundle.zip
+      - assets/shipinhao/bundle/project_bundle_manifest.json
+      - assets/shipinhao/bundle/file_manifest.json
+      - assets/shipinhao/bundle/README.md
+
+  - id: bilibili_project_bundle
+    agent: project-bundle-agent
+    platform: bilibili
+    depends_on: [bilibili_editor_software_run_evidence]
+    parallel_group: project_bundles
+    outputs:
+      - assets/bilibili/bundle/project_bundle.zip
+      - assets/bilibili/bundle/project_bundle_manifest.json
+      - assets/bilibili/bundle/file_manifest.json
+      - assets/bilibili/bundle/README.md
+
+  - id: delivery_index
+    agent: delivery-index-agent
+    depends_on: [douyin_project_bundle, shipinhao_project_bundle, bilibili_project_bundle]
+    outputs:
+      - final/delivery_index.json
+      - final/delivery_readme.md
+
+  - id: artifact_store
+    agent: artifact-store-agent
+    depends_on: [delivery_index]
+    outputs:
+      - artifact_store/artifact_store_manifest.json
+      - artifact_store/README.md
+      - artifact_store/download_index.md
+      - artifact_store/checksums.sha256
+      - artifact_store/manifests/delivery_index.json
+      - artifact_store/downloads/douyin_project_bundle.zip
+      - artifact_store/downloads/shipinhao_project_bundle.zip
+      - artifact_store/downloads/bilibili_project_bundle.zip
+
+  - id: external_mirror_plan
+    agent: external-mirror-plan-agent
+    depends_on: [artifact_store]
+    outputs:
+      - artifact_store/external_mirror_plan.json
+      - artifact_store/sync_command_preview.md
+      - artifact_store/human_distribution_approval_request.md
+      - artifact_store/external_mirror_readme.md
+
+  - id: fact_check
+    agent: fact-check-agent
+    depends_on: [wechat_article, xiaohongshu_note, douyin_video, shipinhao_video, bilibili_video, douyin_storyboard_preview, shipinhao_storyboard_preview, bilibili_storyboard_preview, douyin_asset_materialization, shipinhao_asset_materialization, bilibili_asset_materialization, douyin_licensed_media_ingest, shipinhao_licensed_media_ingest, bilibili_licensed_media_ingest, douyin_licensed_media_proxy, shipinhao_licensed_media_proxy, bilibili_licensed_media_proxy, douyin_subtitle_timing, shipinhao_subtitle_timing, bilibili_subtitle_timing, douyin_voiceover_tts, shipinhao_voiceover_tts, bilibili_voiceover_tts, douyin_edit_project, shipinhao_edit_project, bilibili_edit_project, douyin_export_project, shipinhao_export_project, bilibili_export_project, douyin_editor_replacement_instructions, shipinhao_editor_replacement_instructions, bilibili_editor_replacement_instructions, douyin_editor_replacement_execution, shipinhao_editor_replacement_execution, bilibili_editor_replacement_execution, douyin_editor_project_mutation_sandbox, shipinhao_editor_project_mutation_sandbox, bilibili_editor_project_mutation_sandbox, douyin_editor_software_import_executor, shipinhao_editor_software_import_executor, bilibili_editor_software_import_executor, douyin_editor_software_real_runner_sandbox, shipinhao_editor_software_real_runner_sandbox, bilibili_editor_software_real_runner_sandbox, douyin_editor_software_run_evidence, shipinhao_editor_software_run_evidence, bilibili_editor_software_run_evidence, douyin_project_bundle, shipinhao_project_bundle, bilibili_project_bundle, delivery_index, artifact_store, external_mirror_plan]
+    outputs:
+      - review/fact_check.md
+
+  - id: compliance_check
+    agent: compliance-agent
+    depends_on: [fact_check]
+    outputs:
+      - review/compliance.md
+
+  - id: final_validation
+    agent: validator-agent
+    depends_on: [compliance_check]
+    outputs:
+      - review/validation_report.json
+
+outputs:
+  - final/content_package_manifest.json
+  - final/video_production_package.json
+  - final/materialization_manifest.json
+  - final/licensed_media_ingest_manifest.json
+  - final/licensed_media_proxy_manifest.json
+  - final/editor_replacement_instruction_manifest.json
+  - final/editor_replacement_execution_manifest.json
+  - final/editor_project_mutation_manifest.json
+  - final/editor_software_import_manifest.json
+  - final/editor_software_real_runner_manifest.json
+  - final/editor_software_run_evidence_manifest.json
+  - final/edit_project_manifest.json
+  - final/export_project_manifest.json
+  - final/project_bundle_manifest.json
+  - final/delivery_index.json
+  - final/delivery_readme.md
+  - artifact_store/artifact_store_manifest.json
+  - artifact_store/README.md
+  - artifact_store/download_index.md
+  - artifact_store/checksums.sha256
+  - artifact_store/manifests/delivery_index.json
+  - artifact_store/downloads/douyin_project_bundle.zip
+  - artifact_store/downloads/shipinhao_project_bundle.zip
+  - artifact_store/downloads/bilibili_project_bundle.zip
+  - artifact_store/external_mirror_plan.json
+  - artifact_store/sync_command_preview.md
+  - artifact_store/human_distribution_approval_request.md
+  - artifact_store/external_mirror_readme.md
+  - final/review_report.md

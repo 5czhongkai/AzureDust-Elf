@@ -1,0 +1,24 @@
+id: repair-agent
+name: Repair Agent
+layer: repair
+role: 读取失败日志、定位失败类型、给出修复动作，并请求总控重跑必要任务。
+inputs:
+  - failure_report
+  - task_spec
+  - artifacts
+outputs:
+  - repair_plan.md
+  - patched_task_spec
+tools:
+  - filesystem
+  - workflow_engine
+permissions:
+  - read_artifacts
+  - write_artifacts
+  - propose_retry
+handoffs:
+  - global-orchestrator
+quality_gates:
+  - no_infinite_retry
+  - root_cause_recorded
+

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/task_spec.schema.json",
+  "title": "TaskSpec",
+  "type": "object",
+  "required": ["task_id", "workflow_id", "agent", "goal", "inputs", "outputs", "acceptance_criteria", "max_retries"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "workflow_id": { "type": "string" },
+    "agent": { "type": "string" },
+    "goal": { "type": "string" },
+    "inputs": { "type": "object", "additionalProperties": true },
+    "outputs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "permissions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "max_retries": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "requires_human_approval": { "type": "boolean", "default": false },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": false
+}
+

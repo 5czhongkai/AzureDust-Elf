@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/timed_subtitles.schema.json",
+  "title": "TimedSubtitles",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "source_artifacts",
+    "source_subtitle_blocks",
+    "storyboard_scene_count",
+    "subtitle_count",
+    "total_duration_seconds",
+    "timeline_policy",
+    "corrections",
+    "subtitles",
+    "validation",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.timed_subtitles.v1" },
+    "artifact_type": { "type": "string", "const": "timed_subtitles" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-subtitle-timing-adapter" },
+    "adapter_version": { "type": "string" },
+    "source_artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_subtitle_blocks": { "type": "number" },
+    "storyboard_scene_count": { "type": "number" },
+    "subtitle_count": { "type": "number" },
+    "total_duration_seconds": { "type": "number" },
+    "timeline_policy": {
+      "type": "object",
+      "required": ["alignment", "no_cross_shot_subtitles", "long_text_split", "tts_ready"],
+      "properties": {
+        "alignment": { "type": "string", "const": "storyboard_shot_boundaries" },
+        "no_cross_shot_subtitles": { "type": "boolean", "const": true },
+        "long_text_split": { "type": "boolean" },
+        "tts_ready": { "type": "boolean", "const": true }
+      },
+      "additionalProperties": false
+    },
+    "corrections": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "subtitles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "index",
+          "shot_index",
+          "shot_id",
+          "scene",
+          "start_seconds",
+          "end_seconds",
+          "duration_seconds",
+          "start_timecode",
+          "end_timecode",
+          "text",
+          "source_text",
+          "source_block_index",
+          "split_index",
+          "split_count",
+          "review_required"
+        ],
+        "properties": {
+          "index": { "type": "number" },
+          "shot_index": { "type": "number" },
+          "shot_id": { "type": "string" },
+          "scene": { "type": "string" },
+          "start_seconds": { "type": "number" },
+          "end_seconds": { "type": "number" },
+          "duration_seconds": { "type": "number" },
+          "start_timecode": { "type": "string" },
+          "end_timecode": { "type": "string" },
+          "text": { "type": "string" },
+          "source_text": { "type": "string" },
+          "source_block_index": { "type": ["number", "null"] },
+          "split_index": { "type": "number" },
+          "split_count": { "type": "number" },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "no_overlap",
+        "no_cross_shot_subtitles",
+        "starts_at_zero",
+        "ends_at_total_duration"
+      ],
+      "properties": {
+        "status": { "type": "string", "const": "PASSED" },
+        "no_overlap": { "type": "boolean", "const": true },
+        "no_cross_shot_subtitles": { "type": "boolean", "const": true },
+        "starts_at_zero": { "type": "boolean", "const": true },
+        "ends_at_total_duration": { "type": "boolean", "const": true }
+      },
+      "additionalProperties": false
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

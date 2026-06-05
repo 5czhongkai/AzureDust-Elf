@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/delivery_index.schema.json",
+  "title": "DeliveryIndex",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "index_path",
+    "readme_path",
+    "platforms",
+    "download_items",
+    "platform_deliveries",
+    "archive_summary",
+    "source_artifacts",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.delivery_index.v1" },
+    "artifact_type": { "type": "string", "const": "delivery_index" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "index_path": { "type": "string", "const": "final/delivery_index.json" },
+    "readme_path": { "type": "string", "const": "final/delivery_readme.md" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["douyin", "shipinhao", "bilibili"] }
+    },
+    "download_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["platform", "platform_label", "path", "bytes", "sha256", "review_required"],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "path": { "type": "string" },
+          "bytes": { "type": "number" },
+          "sha256": { "type": "string" },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "platform_deliveries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "platform_label",
+          "bundle_path",
+          "bundle_manifest_path",
+          "file_manifest_path",
+          "bundle_readme_path",
+          "bundle_exists",
+          "bundle_bytes",
+          "sha256",
+          "validation_status",
+          "required_files_present",
+          "offline_broll_count",
+          "review_required"
+        ],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "bundle_path": { "type": "string" },
+          "bundle_manifest_path": { "type": "string" },
+          "file_manifest_path": { "type": "string" },
+          "bundle_readme_path": { "type": "string" },
+          "bundle_exists": { "type": "boolean" },
+          "bundle_bytes": { "type": "number" },
+          "sha256": { "type": ["string", "null"] },
+          "validation_status": { "type": ["string", "null"] },
+          "required_files_present": { "type": "boolean" },
+          "offline_broll_count": { "type": "number" },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "archive_summary": {
+      "type": "object",
+      "required": [
+        "bundle_count",
+        "expected_bundle_count",
+        "passed_bundle_count",
+        "total_bundle_bytes",
+        "all_required_files_present"
+      ],
+      "properties": {
+        "bundle_count": { "type": "number" },
+        "expected_bundle_count": { "type": "number" },
+        "passed_bundle_count": { "type": "number" },
+        "total_bundle_bytes": { "type": "number" },
+        "all_required_files_present": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "export_boundary": {
+      "type": "object",
+      "required": ["delivery_index_generation", "external_storage_sync", "publishing", "upload"],
+      "properties": {
+        "delivery_index_generation": { "type": "string" },
+        "external_storage_sync": { "type": "string" },
+        "publishing": { "type": "string" },
+        "upload": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "bundle_count",
+        "expected_bundle_count",
+        "passed_bundle_count",
+        "all_required_files_present"
+      ],
+      "properties": {
+        "status": { "type": "string" },
+        "bundle_count": { "type": "number" },
+        "expected_bundle_count": { "type": "number" },
+        "passed_bundle_count": { "type": "number" },
+        "all_required_files_present": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "generation_status": { "type": "string", "const": "generated_local_delivery_index_pending_human_review" },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

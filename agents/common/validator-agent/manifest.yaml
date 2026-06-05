@@ -1,0 +1,22 @@
+id: validator-agent
+name: Validator Agent
+layer: validator
+role: 根据 schema、平台规则和验收标准检查所有产物是否可进入 final。
+inputs:
+  - task_specs
+  - platform_outputs
+  - review_reports
+outputs:
+  - review/validation_report.json
+tools:
+  - filesystem
+  - schema_validator
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - repair-agent
+quality_gates:
+  - outputs_match_schema
+  - all_acceptance_criteria_checked
+

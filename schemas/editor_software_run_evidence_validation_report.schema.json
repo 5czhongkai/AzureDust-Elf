@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_software_run_evidence_validation_report.schema.json",
+  "title": "EditorSoftwareRunEvidenceValidationReport",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "validation_report_path",
+    "evidence_items",
+    "summary",
+    "export_boundary",
+    "validation",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_software_run_evidence_validation_report.v1" },
+    "artifact_type": { "type": "string", "const": "editor_software_run_evidence_validation_report" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "validation_report_path": { "type": "string" },
+    "evidence_items": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "summary": { "type": "object", "additionalProperties": true },
+    "export_boundary": { "type": "object", "additionalProperties": true },
+    "validation": { "type": "object", "additionalProperties": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

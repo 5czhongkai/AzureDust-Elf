@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_software_run_evidence_rollback_decision_report.schema.json",
+  "title": "EditorSoftwareRunEvidenceRollbackDecisionReport",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "rollback_decision_report_path",
+    "rollback_decision",
+    "rollback_required",
+    "rollback_policy",
+    "export_boundary",
+    "validation",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_software_run_evidence_rollback_decision_report.v1" },
+    "artifact_type": { "type": "string", "const": "editor_software_run_evidence_rollback_decision_report" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "rollback_decision_report_path": { "type": "string" },
+    "rollback_decision": { "type": "string" },
+    "rollback_required": { "type": "boolean" },
+    "rollback_reason": { "type": "string" },
+    "rollback_policy": { "type": "string", "const": "human_decision_only_no_automation_rollback" },
+    "export_boundary": { "type": "object", "additionalProperties": true },
+    "validation": { "type": "object", "additionalProperties": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

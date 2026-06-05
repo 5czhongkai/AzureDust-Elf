@@ -1,0 +1,27 @@
+id: export-project-agent
+name: Export Project Agent
+layer: common
+role: 根据 edit_timeline.json 和 edit_manifest.json 生成本地 FCPXML 草稿工程、导入说明、offline media report 和 export manifest。
+inputs:
+  - assets/{platform}/edit/edit_timeline.json
+  - assets/{platform}/edit/edit_manifest.json
+  - assets/{platform}/edit/draft_cut.edl
+  - "{platform}/timed_subtitles.srt"
+outputs:
+  - assets/{platform}/edit/project.fcpxml
+  - assets/{platform}/edit/import_readme.md
+  - assets/{platform}/edit/offline_media_report.json
+  - assets/{platform}/edit/export_manifest.json
+tools:
+  - filesystem
+  - xml-writer
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - fcpxml_is_well_formed
+  - referenced_storyboard_and_voiceover_assets_exist
+  - offline_broll_slots_are_reported
+  - no_editing_software_upload_or_publish

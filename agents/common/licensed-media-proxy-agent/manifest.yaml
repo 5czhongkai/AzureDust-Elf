@@ -1,0 +1,27 @@
+id: licensed-media-proxy-agent
+name: Licensed Media Proxy Agent
+layer: common
+role: 将 human_media_registry.json 中通过人工审核的本地授权素材推进为剪辑工程替换建议和本地代理素材拷贝，不搜索、下载、购买、上传、发布或打开剪辑软件。
+inputs:
+  - assets/{platform}/licensed_media/ingest_manifest.json
+  - assets/{platform}/licensed_media/human_media_registry.json
+outputs:
+  - assets/{platform}/licensed_media/proxy_manifest.json
+  - assets/{platform}/licensed_media/replacement_suggestions.json
+  - assets/{platform}/licensed_media/proxy/README.md
+  - assets/{platform}/licensed_media/proxy/{asset_id}_proxy.*
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - edit-project-agent
+  - export-project-agent
+  - project-bundle-agent
+  - compliance-agent
+quality_gates:
+  - replacement_suggestions_generated
+  - proxy_copy_only_from_human_registered_approved_local_media
+  - no_external_search_download_purchase_upload_or_publish
+  - editor_review_required_before_replacement

@@ -1,0 +1,32 @@
+id: global-orchestrator
+name: Global Orchestrator
+layer: orchestrator
+role: 拆解目标、分配任务、监督运行、验证产物、触发修复、归档结果。
+inputs:
+  - user_goal
+  - workflow
+  - agent_registry
+  - plugin_registry
+outputs:
+  - workflow_run
+  - task_specs
+  - final_report
+tools:
+  - filesystem
+  - workflow_engine
+  - task_ledger
+permissions:
+  - read_registry
+  - create_tasks
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - research-agent
+  - topic-agent
+  - outline-agent
+  - validator-agent
+  - repair-agent
+quality_gates:
+  - every_task_has_acceptance_criteria
+  - no_publish_without_human_approval
+

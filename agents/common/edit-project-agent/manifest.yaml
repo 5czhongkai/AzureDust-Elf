@@ -1,0 +1,27 @@
+id: edit-project-agent
+name: Edit Project Agent
+layer: common
+role: 根据 storyboard keyframes、timed subtitles、voiceover 和 shot list 生成本地可执行剪辑时间线、EDL 草稿和 edit manifest。
+inputs:
+  - "{platform}/storyboard.json"
+  - "{platform}/shot_list.json"
+  - "{platform}/timed_subtitles.json"
+  - assets/{platform}/voiceover/voiceover_manifest.json
+  - assets/{platform}/storyboard/storyboard_preview_metadata.json
+  - "{platform}/broll_list.json"
+outputs:
+  - assets/{platform}/edit/edit_timeline.json
+  - assets/{platform}/edit/edit_manifest.json
+  - assets/{platform}/edit/draft_cut.edl
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - edit_timeline_duration_matches_voiceover_and_subtitles
+  - shot_count_matches_storyboard
+  - edl_contains_all_storyboard_shots
+  - no_editing_software_upload_or_publish

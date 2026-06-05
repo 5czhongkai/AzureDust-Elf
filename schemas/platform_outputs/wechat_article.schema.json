@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/platform_outputs/wechat_article.schema.json",
+  "title": "WeChatArticleOutput",
+  "type": "object",
+  "required": ["title", "summary", "body_markdown", "source_notes", "review_required"],
+  "properties": {
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "body_markdown": { "type": "string" },
+    "title_options": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["claim", "source"],
+        "properties": {
+          "claim": { "type": "string" },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}
+

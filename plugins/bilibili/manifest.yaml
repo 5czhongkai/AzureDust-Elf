@@ -1,0 +1,25 @@
+id: bilibili
+name: Bilibili Video Plugin
+platform: B站
+agents:
+  - bilibili-video-agent
+inputs:
+  - master_outline.md
+  - asset_plan.json
+outputs:
+  - bilibili/script.md
+  - bilibili/chapters.json
+  - bilibili/description.md
+  - bilibili/storyboard.json
+  - bilibili/subtitles.srt
+  - bilibili/shot_list.json
+  - bilibili/broll_list.json
+  - bilibili/cover_prompt.md
+validators:
+  - validators/checklist.md
+human_approval:
+  - upload_video
+  - publish
+  - use_uncleared_assets
+risk_notes:
+  - Phase 4 只生成长视频生产包，不自动下载素材、剪辑、上传或投稿。

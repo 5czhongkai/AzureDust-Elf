@@ -1,0 +1,34 @@
+id: editor-software-import-executor-agent
+name: Editor Software Import Executor Agent
+layer: common
+role: 将最终人工确认后的 patched FCPXML 沙盒工程接入真实剪辑软件导入/执行器隔离合同；默认阻断，不打开剪辑软件、不执行导入、不修改工程、不上传或发布。
+inputs:
+  - assets/{platform}/edit/mutation_sandbox/mutation_manifest.json
+  - assets/{platform}/edit/mutation_sandbox/patched_project.fcpxml
+  - assets/{platform}/edit/mutation_sandbox/mutation_diff.json
+  - assets/{platform}/edit/mutation_sandbox/rollback_manifest.json
+  - optional assets/{platform}/edit/software_import_executor/human_software_import_approval.json
+outputs:
+  - assets/{platform}/edit/software_import_executor/import_executor_manifest.json
+  - assets/{platform}/edit/software_import_executor/import_plan.json
+  - assets/{platform}/edit/software_import_executor/import_commands.json
+  - assets/{platform}/edit/software_import_executor/software_import_audit_log.json
+  - assets/{platform}/edit/software_import_executor/rollback_safety_report.json
+  - assets/{platform}/edit/software_import_executor/isolated_execution_request.md
+  - assets/{platform}/edit/software_import_executor/README.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - project-bundle-agent
+  - compliance-agent
+  - validator-agent
+quality_gates:
+  - isolated_import_plan_generated
+  - explicit_human_software_import_approval_required
+  - no_editing_software_launch_by_default
+  - no_import_execution_or_project_mutation
+  - rollback_safety_report_generated
+  - no_upload_or_publish

@@ -1,0 +1,21 @@
+id: compliance-agent
+name: Compliance Agent
+layer: common
+role: 检查平台规则、敏感风险、版权风险、发布前人工审批要求。
+inputs:
+  - platform_outputs
+  - fact_check.md
+outputs:
+  - review/compliance.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - validator-agent
+  - repair-agent
+quality_gates:
+  - publish_actions_blocked
+  - human_approval_needed_for_sensitive_content
+

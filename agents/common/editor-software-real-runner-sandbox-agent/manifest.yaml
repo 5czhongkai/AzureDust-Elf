@@ -1,0 +1,35 @@
+id: editor-software-real-runner-sandbox-agent
+name: Editor Software Real Runner Sandbox Agent
+layer: common
+role: 将剪辑软件隔离导入计划推进为真实软件运行沙盒包；默认阻断，不启动真实软件、不执行导入、不修改工程、不上传或发布。
+inputs:
+  - assets/{platform}/edit/software_import_executor/import_executor_manifest.json
+  - assets/{platform}/edit/software_import_executor/import_plan.json
+  - assets/{platform}/edit/software_import_executor/import_commands.json
+  - assets/{platform}/edit/software_import_executor/rollback_safety_report.json
+  - optional assets/{platform}/edit/software_real_runner_sandbox/human_real_run_approval.json
+outputs:
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_sandbox_manifest.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_environment_snapshot.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_launch_plan.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_command_preview.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_audit_log.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_evidence_manifest.json
+  - assets/{platform}/edit/software_real_runner_sandbox/human_real_run_approval_request.md
+  - assets/{platform}/edit/software_real_runner_sandbox/README.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - project-bundle-agent
+  - compliance-agent
+  - validator-agent
+quality_gates:
+  - real_runner_sandbox_package_generated
+  - explicit_human_real_run_approval_required
+  - no_real_software_launch_by_default
+  - no_process_spawn_import_execution_or_project_mutation
+  - evidence_manifest_generated
+  - no_upload_or_publish

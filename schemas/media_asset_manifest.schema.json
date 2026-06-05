@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/media_asset_manifest.schema.json",
+  "title": "MediaAssetManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "topic",
+    "generated_by",
+    "source_artifacts",
+    "assets",
+    "summary",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.media_asset_manifest.v1" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "generated_by": { "type": "string", "const": "asset-agent" },
+    "source_artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "task_id",
+          "platform",
+          "asset_type",
+          "path",
+          "status",
+          "source_type",
+          "rights_status",
+          "manual_review_required",
+          "used_by"
+        ],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "task_id": { "type": "string" },
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "asset_type": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "string", "const": "planned" },
+          "source_type": { "type": "string" },
+          "rights_status": { "type": "string", "const": "pending_human_review" },
+          "manual_review_required": { "type": "boolean", "const": true },
+          "used_by": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["asset_count", "planned_count", "pending_rights_review_count"],
+      "properties": {
+        "asset_count": { "type": "number" },
+        "planned_count": { "type": "number" },
+        "pending_rights_review_count": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

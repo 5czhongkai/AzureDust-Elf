@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/asset_generation_tasks.schema.json",
+  "title": "AssetGenerationTasks",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "topic",
+    "generated_by",
+    "agent_interface",
+    "video_platforms",
+    "tasks",
+    "execution_boundary",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.asset_generation_tasks.v1" },
+    "topic": { "type": "string" },
+    "generated_by": { "type": "string", "const": "asset-agent" },
+    "agent_interface": { "type": "string" },
+    "video_platforms": {
+      "type": "array",
+      "items": { "enum": ["douyin", "shipinhao", "bilibili"] }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "platform",
+          "asset_type",
+          "task_type",
+          "status",
+          "prompt",
+          "target_path",
+          "rights_status",
+          "manual_review_required",
+          "acceptance_criteria"
+        ],
+        "properties": {
+          "task_id": { "type": "string" },
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "asset_type": { "type": "string" },
+          "task_type": { "type": "string" },
+          "status": { "type": "string", "const": "planned" },
+          "prompt": { "type": "string" },
+          "target_path": { "type": "string" },
+          "aspect_ratio": { "type": "string" },
+          "linked_shot_id": { "type": "string" },
+          "usage": { "type": "string" },
+          "rights_status": { "type": "string", "const": "pending_human_review" },
+          "manual_review_required": { "type": "boolean", "const": true },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "execution_boundary": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

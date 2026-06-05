@@ -1,0 +1,23 @@
+id: outline-agent
+name: Outline Agent
+layer: common
+role: 生成跨平台 master outline，作为公众号、小红书、抖音、视频号、B站产出的共享内容骨架。
+inputs:
+  - angle_pack.json
+  - research_report.md
+outputs:
+  - master_outline.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - wechat-article-agent
+  - xiaohongshu-note-agent
+  - douyin-video-agent
+  - shipinhao-video-agent
+  - bilibili-video-agent
+quality_gates:
+  - outline_has_clear_claims
+  - outline_has_platform_reusable_sections

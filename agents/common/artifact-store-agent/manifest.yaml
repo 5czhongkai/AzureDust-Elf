@@ -1,0 +1,32 @@
+id: artifact-store-agent
+name: Artifact Store Agent
+layer: common
+role: 将本地 delivery index 中的工程 ZIP 复制到可下载交付目录，生成下载索引、校验和和人工分发 README；不执行外部同步、上传或发布。
+inputs:
+  - final/delivery_index.json
+  - final/delivery_readme.md
+  - assets/douyin/bundle/project_bundle.zip
+  - assets/shipinhao/bundle/project_bundle.zip
+  - assets/bilibili/bundle/project_bundle.zip
+outputs:
+  - artifact_store/artifact_store_manifest.json
+  - artifact_store/README.md
+  - artifact_store/download_index.md
+  - artifact_store/checksums.sha256
+  - artifact_store/manifests/delivery_index.json
+  - artifact_store/downloads/douyin_project_bundle.zip
+  - artifact_store/downloads/shipinhao_project_bundle.zip
+  - artifact_store/downloads/bilibili_project_bundle.zip
+tools:
+  - filesystem
+  - checksum
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - fact-check-agent
+quality_gates:
+  - every_delivery_index_download_item_is_copied_to_artifact_store
+  - copied_bundle_sha256_matches_delivery_index
+  - artifact_store_marks_no_external_sync_upload_login_or_publish
+  - human_review_required_before_distribution

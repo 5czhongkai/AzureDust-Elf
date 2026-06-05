@@ -1,0 +1,21 @@
+id: style-agent
+name: Style Agent
+layer: common
+role: 维护账号人设、语气、表达边界和跨平台一致性。
+inputs:
+  - brand_profile
+  - draft_content
+outputs:
+  - style_review.md
+  - revised_content
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - validator-agent
+quality_gates:
+  - tone_matches_brand_profile
+  - no_generic_ai_slop
+

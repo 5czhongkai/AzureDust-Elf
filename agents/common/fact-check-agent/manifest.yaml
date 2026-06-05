@@ -1,0 +1,23 @@
+id: fact-check-agent
+name: Fact Check Agent
+layer: common
+role: 核查事实、数字、政策、引用和高风险表述。
+inputs:
+  - platform_outputs
+  - sources.json
+outputs:
+  - review/fact_check.md
+tools:
+  - filesystem
+  - web_search
+permissions:
+  - read_artifacts
+  - write_artifacts
+  - network_read
+handoffs:
+  - compliance-agent
+  - repair-agent
+quality_gates:
+  - every_material_claim_checked
+  - unsupported_claims_flagged
+

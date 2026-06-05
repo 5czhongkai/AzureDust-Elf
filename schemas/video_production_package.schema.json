@@ -1,0 +1,698 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/video_production_package.schema.json",
+  "title": "VideoProductionPackage",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "package_type",
+    "run_id",
+    "topic",
+    "platforms",
+    "video_platforms",
+    "source_artifacts",
+    "asset_generation_tasks",
+    "media_asset_manifest",
+    "materialization_manifest",
+    "licensed_media_ingest_manifest",
+    "licensed_media_proxy_manifest",
+    "editor_replacement_instruction_manifest",
+    "editor_replacement_execution_manifest",
+    "editor_project_mutation_manifest",
+    "editor_software_import_manifest",
+    "editor_software_real_runner_manifest",
+    "editor_software_run_evidence_manifest",
+    "edit_project_manifest",
+    "export_project_manifest",
+    "project_bundle_manifest",
+    "platform_packages",
+    "export_boundary",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.video_production_package.v1" },
+    "package_type": { "type": "string", "const": "video_production_package" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["wechat", "xiaohongshu", "douyin", "shipinhao", "bilibili"] }
+    },
+    "video_platforms": {
+      "type": "array",
+      "items": { "enum": ["douyin", "shipinhao", "bilibili"] }
+    },
+    "source_artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "asset_generation_tasks": { "type": "string" },
+    "media_asset_manifest": { "type": "string" },
+    "materialization_manifest": { "type": "string", "const": "final/materialization_manifest.json" },
+    "licensed_media_ingest_manifest": { "type": "string", "const": "final/licensed_media_ingest_manifest.json" },
+    "licensed_media_proxy_manifest": { "type": "string", "const": "final/licensed_media_proxy_manifest.json" },
+    "editor_replacement_instruction_manifest": { "type": "string", "const": "final/editor_replacement_instruction_manifest.json" },
+    "editor_replacement_execution_manifest": { "type": "string", "const": "final/editor_replacement_execution_manifest.json" },
+    "editor_project_mutation_manifest": { "type": "string", "const": "final/editor_project_mutation_manifest.json" },
+    "editor_software_import_manifest": { "type": "string", "const": "final/editor_software_import_manifest.json" },
+    "editor_software_real_runner_manifest": { "type": "string", "const": "final/editor_software_real_runner_manifest.json" },
+    "editor_software_run_evidence_manifest": { "type": "string", "const": "final/editor_software_run_evidence_manifest.json" },
+    "edit_project_manifest": { "type": "string", "const": "final/edit_project_manifest.json" },
+    "export_project_manifest": { "type": "string", "const": "final/export_project_manifest.json" },
+    "project_bundle_manifest": { "type": "string", "const": "final/project_bundle_manifest.json" },
+    "generated_assets": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "platform_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "platform_label",
+          "aspect_ratio",
+          "recommended_duration_seconds",
+          "deliverables",
+          "asset_plan",
+          "asset_tasks",
+          "media_assets",
+          "materialized_assets",
+          "licensed_media_ingest",
+          "licensed_media_proxy",
+          "editor_replacement_instructions",
+          "editor_replacement_execution",
+          "editor_project_mutation_sandbox",
+          "editor_software_import_executor",
+          "editor_software_real_runner_sandbox",
+          "editor_software_run_evidence",
+          "generated_assets",
+          "timed_subtitles",
+          "voiceover_tts",
+          "edit_project",
+          "export_project",
+          "project_bundle",
+          "production_checklist",
+          "review_required"
+        ],
+        "properties": {
+          "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+          "platform_label": { "type": "string" },
+          "aspect_ratio": { "type": "string" },
+          "recommended_duration_seconds": { "type": "number" },
+          "deliverables": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "asset_plan": {
+            "type": "object",
+            "required": ["shot_list", "broll_list", "asset_clearance"],
+            "properties": {
+              "cover_prompt": { "type": ["string", "null"] },
+              "shot_list": { "type": "array" },
+              "broll_list": { "type": "array" },
+              "asset_clearance": { "type": "object", "additionalProperties": true }
+            },
+            "additionalProperties": false
+          },
+          "asset_tasks": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "media_assets": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "materialized_assets": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "materialized_count": { "type": "number" },
+              "broll_reference_count": { "type": "number" },
+              "reference_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "licensed_final_media_required": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "licensed_media_ingest": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "review_handoff_path": { "type": ["string", "null"] },
+              "human_media_registry_path": { "type": ["string", "null"] },
+              "human_media_registry_exists": { "type": "boolean" },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "required_final_media_count": { "type": "number" },
+              "pending_human_media_count": { "type": "number" },
+              "candidate_media_count": { "type": "number" },
+              "ready_for_editor_replacement_count": { "type": "number" },
+              "licensed_media_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "license_proof_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "pending_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "intake_complete": { "type": "boolean" },
+              "licensed_final_media_required": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "licensed_media_proxy": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "replacement_suggestions_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "proxy_dir": { "type": ["string", "null"] },
+              "licensed_media_ingest_manifest_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "required_final_media_count": { "type": "number" },
+              "ready_source_media_count": { "type": "number" },
+              "proxy_copied_count": { "type": "number" },
+              "pending_human_media_count": { "type": "number" },
+              "candidate_pending_review_count": { "type": "number" },
+              "blocked_proxy_count": { "type": "number" },
+              "editor_replacement_ready_count": { "type": "number" },
+              "proxy_media_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "licensed_media_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "license_proof_paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "pending_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "candidate_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "proxy_copy_complete_for_ready_media": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_replacement_instructions": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "replacement_commands_path": { "type": ["string", "null"] },
+              "editor_import_template_path": { "type": ["string", "null"] },
+              "human_confirmation_checklist_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_replacement_suggestions_path": { "type": ["string", "null"] },
+              "source_proxy_manifest_path": { "type": ["string", "null"] },
+              "source_export_project_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "instruction_count": { "type": "number" },
+              "ready_pending_human_confirmation_count": { "type": "number" },
+              "pending_human_media_count": { "type": "number" },
+              "blocked_instruction_count": { "type": "number" },
+              "executable_after_human_confirmation_count": { "type": "number" },
+              "human_confirmation_required_count": { "type": "number" },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "pending_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "human_confirmation_gate_active": { "type": "boolean" },
+              "replacement_execution_performed": { "type": "boolean" },
+              "editing_software_opened": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "human_confirmation_required": { "type": "boolean" },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_replacement_execution": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "execution_plan_path": { "type": ["string", "null"] },
+              "audit_log_path": { "type": ["string", "null"] },
+              "approval_request_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_instruction_manifest_path": { "type": ["string", "null"] },
+              "source_replacement_commands_path": { "type": ["string", "null"] },
+              "human_execution_approval_path": { "type": ["string", "null"] },
+              "human_execution_approval_present": { "type": "boolean" },
+              "human_execution_approval_valid": { "type": "boolean" },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "editor_replacement_execution": { "type": ["string", "null"] },
+              "command_count": { "type": "number" },
+              "ready_after_instruction_gate_count": { "type": "number" },
+              "human_execution_approved_count": { "type": "number" },
+              "blocked_execution_count": { "type": "number" },
+              "blocked_pending_approval_count": { "type": "number" },
+              "blocked_proxy_media_missing_count": { "type": "number" },
+              "executable_after_approval_count": { "type": "number" },
+              "executed_count": { "type": "number" },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "approved_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "executable_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "human_execution_approval_required": { "type": "boolean" },
+              "replacement_execution_performed": { "type": "boolean" },
+              "editing_software_opened": { "type": "boolean" },
+              "project_file_mutation_performed": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_project_mutation_sandbox": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "patched_project_path": { "type": ["string", "null"] },
+              "mutation_diff_path": { "type": ["string", "null"] },
+              "rollback_manifest_path": { "type": ["string", "null"] },
+              "audit_log_path": { "type": ["string", "null"] },
+              "final_review_checklist_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_execution_manifest_path": { "type": ["string", "null"] },
+              "source_execution_plan_path": { "type": ["string", "null"] },
+              "source_export_manifest_path": { "type": ["string", "null"] },
+              "source_project_path": { "type": ["string", "null"] },
+              "human_mutation_approval_path": { "type": ["string", "null"] },
+              "human_mutation_approval_present": { "type": "boolean" },
+              "human_mutation_approval_valid": { "type": "boolean" },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "editor_project_mutation_sandbox": { "type": ["string", "null"] },
+              "execution_item_count": { "type": "number" },
+              "mutation_applied_count": { "type": "number" },
+              "blocked_mutation_count": { "type": "number" },
+              "blocked_pending_approval_count": { "type": "number" },
+              "blocked_execution_not_ready_count": { "type": "number" },
+              "blocked_proxy_media_missing_count": { "type": "number" },
+              "target_missing_count": { "type": "number" },
+              "mutated_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "human_mutation_approval_required": { "type": "boolean" },
+              "patched_copy_generated": { "type": "boolean" },
+              "original_project_mutated": { "type": "boolean" },
+              "replacement_execution_performed": { "type": "boolean" },
+              "editing_software_opened": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_software_import_executor": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "import_plan_path": { "type": ["string", "null"] },
+              "import_commands_path": { "type": ["string", "null"] },
+              "audit_log_path": { "type": ["string", "null"] },
+              "rollback_safety_report_path": { "type": ["string", "null"] },
+              "execution_request_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_mutation_manifest_path": { "type": ["string", "null"] },
+              "source_mutation_diff_path": { "type": ["string", "null"] },
+              "source_rollback_manifest_path": { "type": ["string", "null"] },
+              "source_patched_project_path": { "type": ["string", "null"] },
+              "human_software_import_approval_path": { "type": ["string", "null"] },
+              "human_software_import_approval_present": { "type": "boolean" },
+              "human_software_import_approval_valid": { "type": "boolean" },
+              "target_editor": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "editor_software_import_executor": { "type": ["string", "null"] },
+              "import_item_count": { "type": "number" },
+              "ready_for_isolated_manual_import_count": { "type": "number" },
+              "blocked_import_count": { "type": "number" },
+              "blocked_pending_approval_count": { "type": "number" },
+              "blocked_no_sandbox_patch_count": { "type": "number" },
+              "blocked_patched_project_missing_count": { "type": "number" },
+              "executed_count": { "type": "number" },
+              "editing_software_opened_count": { "type": "number" },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "patched_project_exists": { "type": "boolean" },
+              "rollback_available": { "type": "boolean" },
+              "human_software_import_approval_required": { "type": "boolean" },
+              "software_import_execution_performed": { "type": "boolean" },
+              "editing_software_opened": { "type": "boolean" },
+              "project_file_mutation_performed": { "type": "boolean" },
+              "original_project_mutated": { "type": "boolean" },
+              "replacement_execution_performed": { "type": "boolean" },
+              "isolated_manual_launch_required": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_software_real_runner_sandbox": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "environment_snapshot_path": { "type": ["string", "null"] },
+              "launch_plan_path": { "type": ["string", "null"] },
+              "command_preview_path": { "type": ["string", "null"] },
+              "audit_log_path": { "type": ["string", "null"] },
+              "evidence_manifest_path": { "type": ["string", "null"] },
+              "approval_request_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_import_manifest_path": { "type": ["string", "null"] },
+              "source_import_plan_path": { "type": ["string", "null"] },
+              "source_import_commands_path": { "type": ["string", "null"] },
+              "source_rollback_safety_report_path": { "type": ["string", "null"] },
+              "source_patched_project_path": { "type": ["string", "null"] },
+              "human_real_run_approval_path": { "type": ["string", "null"] },
+              "human_real_run_approval_present": { "type": "boolean" },
+              "human_real_run_approval_valid": { "type": "boolean" },
+              "target_editor": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "editor_software_real_runner_sandbox": { "type": ["string", "null"] },
+              "runner_item_count": { "type": "number" },
+              "ready_for_manual_external_sandbox_launch_count": { "type": "number" },
+              "blocked_runner_count": { "type": "number" },
+              "blocked_pending_approval_count": { "type": "number" },
+              "blocked_import_not_ready_count": { "type": "number" },
+              "launched_count": { "type": "number" },
+              "process_spawned_count": { "type": "number" },
+              "editing_software_opened_count": { "type": "number" },
+              "ready_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "blocked_asset_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "validation_status": { "type": ["string", "null"] },
+              "human_real_run_approval_required": { "type": "boolean" },
+              "real_software_launch_performed": { "type": "boolean" },
+              "software_import_execution_performed": { "type": "boolean" },
+              "editing_software_opened": { "type": "boolean" },
+              "project_file_mutation_performed": { "type": "boolean" },
+              "process_spawned": { "type": "boolean" },
+              "manual_external_launch_required": { "type": "boolean" },
+              "external_process_isolation_required": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "generated_assets": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "timed_subtitles": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string" },
+              "srt_path": { "type": "string" },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "subtitle_count": { "type": "number" },
+              "storyboard_scene_count": { "type": "number" },
+              "total_duration_seconds": { "type": "number" },
+              "correction_count": { "type": "number" },
+              "tts_ready": { "type": "boolean" },
+              "validation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "voiceover_tts": {
+            "type": "object",
+            "properties": {
+              "audio_path": { "type": ["string", "null"] },
+              "manifest_path": { "type": "string" },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "provider": { "type": ["string", "null"] },
+              "provider_external": { "type": "boolean" },
+              "voice_id": { "type": ["string", "null"] },
+              "duration_seconds": { "type": "number" },
+              "segment_count": { "type": "number" },
+              "timed_subtitle_count": { "type": "number" },
+              "validation_status": { "type": ["string", "null"] },
+              "audio_duration_matches_timeline": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "rights_status": { "type": ["string", "null"] },
+              "audio_generation_mode": { "type": ["string", "null"] },
+              "provider_metadata": { "type": "object", "additionalProperties": true },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "edit_project": {
+            "type": "object",
+            "properties": {
+              "timeline_path": { "type": ["string", "null"] },
+              "manifest_path": { "type": ["string", "null"] },
+              "edl_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "duration_seconds": { "type": "number" },
+              "frame_rate": { "type": "number" },
+              "track_summary": { "type": "object", "additionalProperties": true },
+              "validation_status": { "type": ["string", "null"] },
+              "video_duration_matches": { "type": "boolean" },
+              "audio_duration_matches": { "type": "boolean" },
+              "subtitle_duration_matches": { "type": "boolean" },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "export_project": {
+            "type": "object",
+            "properties": {
+              "project_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "offline_report_path": { "type": ["string", "null"] },
+              "manifest_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "project_format": { "type": ["string", "null"] },
+              "duration_seconds": { "type": "number" },
+              "frame_rate": { "type": "number" },
+              "track_summary": { "type": "object", "additionalProperties": true },
+              "validation": { "type": "object", "additionalProperties": true },
+              "validation_status": { "type": ["string", "null"] },
+              "referenced_media_files_exist": { "type": "boolean" },
+              "offline_broll_count": { "type": "number" },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "project_bundle": {
+            "type": "object",
+            "properties": {
+              "bundle_path": { "type": ["string", "null"] },
+              "manifest_path": { "type": ["string", "null"] },
+              "file_manifest_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "bundle_format": { "type": ["string", "null"] },
+              "bundle_summary": { "type": "object", "additionalProperties": true },
+              "validation": { "type": "object", "additionalProperties": true },
+              "validation_status": { "type": ["string", "null"] },
+              "required_files_present": { "type": "boolean" },
+              "bundle_bytes": { "type": "number" },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "editor_software_run_evidence": {
+            "type": "object",
+            "properties": {
+              "manifest_path": { "type": ["string", "null"] },
+              "validation_report_path": { "type": ["string", "null"] },
+              "rollback_decision_report_path": { "type": ["string", "null"] },
+              "checklist_path": { "type": ["string", "null"] },
+              "readme_path": { "type": ["string", "null"] },
+              "source_runner_manifest_path": { "type": ["string", "null"] },
+              "source_launch_plan_path": { "type": ["string", "null"] },
+              "source_command_preview_path": { "type": ["string", "null"] },
+              "source_runner_evidence_manifest_path": { "type": ["string", "null"] },
+              "human_real_run_result_path": { "type": ["string", "null"] },
+              "human_real_run_result_present": { "type": "boolean" },
+              "human_real_run_result_valid": { "type": "boolean" },
+              "editor_software_run_evidence": { "type": ["string", "null"] },
+              "evidence_item_count": { "type": "number" },
+              "human_real_run_evidence_ingested_count": { "type": "number" },
+              "blocked_evidence_count": { "type": "number" },
+              "evidence_file_count": { "type": "number" },
+              "existing_evidence_file_count": { "type": "number" },
+              "missing_evidence_file_count": { "type": "number" },
+              "rollback_required_count": { "type": "number" },
+              "rollback_decision": { "type": ["string", "null"] },
+              "evidence_files": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "missing_evidence_files": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "adapter": { "type": ["string", "null"] },
+              "adapter_version": { "type": ["string", "null"] },
+              "validation_status": { "type": ["string", "null"] },
+              "human_real_run_result_required": { "type": "boolean" },
+              "real_software_launch_performed_by_automation": { "type": "boolean" },
+              "software_import_execution_performed_by_automation": { "type": "boolean" },
+              "editing_software_opened_by_automation": { "type": "boolean" },
+              "project_file_mutation_performed_by_automation": { "type": "boolean" },
+              "process_spawned_by_automation": { "type": "boolean" },
+              "upload_performed": { "type": "boolean" },
+              "publishing_performed": { "type": "boolean" },
+              "generation_status": { "type": ["string", "null"] },
+              "review_required": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "production_checklist": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "review_required": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "cover_image_generation",
+        "storyboard_preview_generation",
+        "asset_materialization",
+        "licensed_media_ingest",
+        "licensed_media_proxy",
+        "editor_replacement_instructions",
+        "editor_replacement_execution",
+        "editor_project_mutation_sandbox",
+        "editor_software_import_executor",
+        "editor_software_real_runner_sandbox",
+        "editor_software_run_evidence",
+        "subtitle_timing_correction",
+        "voiceover_tts_generation",
+        "edit_project_generation",
+        "export_project_generation",
+        "project_bundle_generation",
+        "publishing",
+        "upload",
+        "login_or_cookie_refresh",
+        "asset_download",
+        "external_asset_search"
+      ],
+      "properties": {
+        "cover_image_generation": { "type": "string" },
+        "storyboard_preview_generation": { "type": "string" },
+        "asset_materialization": { "type": "string" },
+        "licensed_media_ingest": { "type": "string" },
+        "licensed_media_proxy": { "type": "string" },
+        "editor_replacement_instructions": { "type": "string" },
+        "editor_replacement_execution": { "type": "string" },
+        "editor_project_mutation_sandbox": { "type": "string" },
+        "editor_software_import_executor": { "type": "string" },
+        "editor_software_real_runner_sandbox": { "type": "string" },
+        "editor_software_run_evidence": { "type": "string" },
+        "subtitle_timing_correction": { "type": "string" },
+        "voiceover_tts_generation": {
+          "enum": [
+            "performed_locally_draft_no_external_provider",
+            "performed_external_openai_speech_pending_human_review",
+            "performed_external_siliconflow_speech_pending_human_review",
+            "performed_mixed_voiceover_tts_pending_human_review"
+          ]
+        },
+        "edit_project_generation": { "type": "string" },
+        "export_project_generation": { "type": "string" },
+        "project_bundle_generation": { "type": "string" },
+        "publishing": { "type": "string" },
+        "upload": { "type": "string" },
+        "login_or_cookie_refresh": { "type": "string" },
+        "asset_download": { "type": "string" },
+        "external_asset_search": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/content_package.schema.json",
+  "title": "ContentPackage",
+  "type": "object",
+  "required": ["run_id", "topic", "platforms", "artifacts", "review_required"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "package_type": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "items": { "enum": ["wechat", "xiaohongshu", "douyin", "shipinhao", "bilibili"] }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["platform", "path", "kind"],
+        "properties": {
+          "platform": { "type": "string" },
+          "path": { "type": "string" },
+          "kind": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "video_production_package": { "type": "string" },
+    "materialization_manifest": { "type": "string" },
+    "licensed_media_ingest_manifest": { "type": "string" },
+    "licensed_media_proxy_manifest": { "type": "string" },
+    "editor_replacement_instruction_manifest": { "type": "string" },
+    "editor_replacement_execution_manifest": { "type": "string" },
+    "editor_project_mutation_manifest": { "type": "string" },
+    "editor_software_import_manifest": { "type": "string" },
+    "editor_software_real_runner_manifest": { "type": "string" },
+    "editor_software_run_evidence_manifest": { "type": "string" },
+    "edit_project_manifest": { "type": "string" },
+    "export_project_manifest": { "type": "string" },
+    "project_bundle_manifest": { "type": "string" },
+    "delivery_index": { "type": "string" },
+    "delivery_readme": { "type": "string" },
+    "artifact_store_manifest": { "type": "string" },
+    "artifact_store_readme": { "type": "string" },
+    "artifact_store_download_index": { "type": "string" },
+    "artifact_store_checksums": { "type": "string" },
+    "external_mirror_plan": { "type": "string" },
+    "external_mirror_sync_command_preview": { "type": "string" },
+    "external_mirror_approval_request": { "type": "string" },
+    "external_mirror_readme": { "type": "string" },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,24 @@
+id: asset-materialization-agent
+name: Asset Materialization Agent
+layer: common
+role: 根据 B-roll 规划任务和平台 broll_list 生成本地可审核的 reference PNG 素材清单，不搜索、下载、导入、上传或发布外部素材。
+inputs:
+  - assets/asset_generation_tasks.json
+  - "{platform}/broll_list.json"
+outputs:
+  - assets/{platform}/materials/material_manifest.json
+  - assets/{platform}/materials/README.md
+  - assets/{platform}/materials/{asset_id}_reference.png
+tools:
+  - filesystem
+  - pillow
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - edit-project-agent
+  - compliance-agent
+quality_gates:
+  - local_reference_assets_generated
+  - no_external_asset_search_download_upload_or_publish
+  - licensed_final_media_still_required

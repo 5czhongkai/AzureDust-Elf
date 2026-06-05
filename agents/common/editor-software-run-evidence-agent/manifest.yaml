@@ -1,0 +1,32 @@
+id: editor-software-run-evidence-agent
+name: Editor Software Run Evidence Agent
+layer: common
+role: 接收人工在外部真实剪辑软件沙盒中完成动作后的证据，生成可审计 closeout 包；不启动软件、不执行导入、不修改工程、不上传或发布。
+inputs:
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_sandbox_manifest.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_launch_plan.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_command_preview.json
+  - assets/{platform}/edit/software_real_runner_sandbox/runner_evidence_manifest.json
+  - optional assets/{platform}/edit/software_run_evidence/human_real_run_result.json
+  - optional human evidence files referenced by human_real_run_result.json
+outputs:
+  - assets/{platform}/edit/software_run_evidence/real_run_evidence_manifest.json
+  - assets/{platform}/edit/software_run_evidence/evidence_validation_report.json
+  - assets/{platform}/edit/software_run_evidence/rollback_decision_report.json
+  - assets/{platform}/edit/software_run_evidence/post_launch_evidence_checklist.md
+  - assets/{platform}/edit/software_run_evidence/README.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - project-bundle-agent
+  - compliance-agent
+  - validator-agent
+quality_gates:
+  - post_launch_evidence_ingest_package_generated
+  - human_real_run_result_required
+  - evidence_ingest_only_no_process_spawn
+  - no_editor_launch_import_project_mutation_upload_or_publish
+  - rollback_decision_report_generated

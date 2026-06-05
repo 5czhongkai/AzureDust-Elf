@@ -1,0 +1,23 @@
+id: voiceover-tts-agent
+name: Voiceover TTS Agent
+layer: common
+role: 根据平台 timed_subtitles.json 生成配音 WAV 和配音 manifest，可输出本地草轨、OpenAI Speech 或 SiliconFlow Speech 语音，为后续剪辑工程复用时间轴。
+inputs:
+  - "{platform}/timed_subtitles.json"
+  - "{platform}/timed_subtitles.srt"
+outputs:
+  - assets/{platform}/voiceover/voiceover.wav
+  - assets/{platform}/voiceover/voiceover_manifest.json
+tools:
+  - filesystem
+  - python-wave
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - voiceover_audio_duration_matches_timed_subtitles
+  - voiceover_segments_match_subtitle_blocks
+  - provider_mode_recorded
+  - no_upload_sync_or_publish

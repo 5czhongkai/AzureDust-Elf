@@ -1,0 +1,44 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime state, generated content, and backups
+data/*
+outputs/*
+logs/*
+backups/*
+!data/.gitkeep
+!outputs/.gitkeep
+!logs/.gitkeep
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Local builds and packaged apps
+.build/
+*.app/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

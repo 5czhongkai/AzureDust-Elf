@@ -1,0 +1,24 @@
+id: delivery-index-agent
+name: Delivery Index Agent
+layer: common
+role: 汇总 project bundle 交付物，生成本地交付索引、校验和和人工交付 README。
+inputs:
+  - assets/douyin/bundle/project_bundle_manifest.json
+  - assets/shipinhao/bundle/project_bundle_manifest.json
+  - assets/bilibili/bundle/project_bundle_manifest.json
+outputs:
+  - final/delivery_index.json
+  - final/delivery_readme.md
+tools:
+  - filesystem
+  - checksum
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - compliance-agent
+quality_gates:
+  - every_selected_video_bundle_is_indexed
+  - bundle_sha256_checksums_are_recorded
+  - delivery_index_marks_no_external_sync_upload_or_publish
+  - human_review_required_before_external_sharing

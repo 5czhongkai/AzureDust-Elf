@@ -1,0 +1,27 @@
+id: douyin-video-agent
+name: Douyin Video Agent
+layer: platform
+role: 生成抖音短视频口播脚本、镜头节奏、字幕和封面方向。
+inputs:
+  - master_outline.md
+  - asset_plan.json
+outputs:
+  - douyin/script.md
+  - douyin/storyboard.json
+  - douyin/subtitles.srt
+  - douyin/shot_list.json
+  - douyin/broll_list.json
+  - douyin/cover_prompt.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - fact-check-agent
+quality_gates:
+  - first_three_seconds_have_hook
+  - shot_list_is_actionable
+  - broll_list_has_clear_rights_status
+  - cover_prompt_has_safe_margins
+  - no_auto_upload

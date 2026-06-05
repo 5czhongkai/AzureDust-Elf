@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_project_mutation_sandbox_manifest.schema.json",
+  "title": "EditorProjectMutationSandboxManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "adapter",
+    "adapter_version",
+    "manifest_path",
+    "patched_project_path",
+    "mutation_diff_path",
+    "rollback_manifest_path",
+    "audit_log_path",
+    "final_review_checklist_path",
+    "readme_path",
+    "source_execution_manifest_path",
+    "source_execution_plan_path",
+    "source_export_manifest_path",
+    "source_project_path",
+    "source_edit_timeline_path",
+    "human_mutation_approval_path",
+    "human_mutation_approval_present",
+    "human_mutation_approval_valid",
+    "mutation_items",
+    "mutations",
+    "summary",
+    "source_artifacts",
+    "export_boundary",
+    "validation",
+    "generation_status",
+    "manual_review_required",
+    "human_mutation_approval_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_project_mutation_sandbox_manifest.v1" },
+    "artifact_type": { "type": "string", "const": "editor_project_mutation_sandbox" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "adapter": { "type": "string", "const": "local-editor-project-mutation-sandbox-adapter" },
+    "adapter_version": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "patched_project_path": { "type": "string" },
+    "mutation_diff_path": { "type": "string" },
+    "rollback_manifest_path": { "type": "string" },
+    "audit_log_path": { "type": "string" },
+    "final_review_checklist_path": { "type": "string" },
+    "readme_path": { "type": "string" },
+    "source_execution_manifest_path": { "type": ["string", "null"] },
+    "source_execution_plan_path": { "type": ["string", "null"] },
+    "source_export_manifest_path": { "type": ["string", "null"] },
+    "source_project_path": { "type": "string" },
+    "source_edit_timeline_path": { "type": "string" },
+    "human_mutation_approval_path": { "type": "string" },
+    "human_mutation_approval_present": { "type": "boolean" },
+    "human_mutation_approval_valid": { "type": "boolean" },
+    "mutation_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "command_id",
+          "asset_id",
+          "proxy_media_exists",
+          "execution_status",
+          "human_mutation_approved",
+          "mutation_status",
+          "mutation_applied",
+          "original_project_mutated",
+          "replacement_execution_performed",
+          "editing_software_opened"
+        ],
+        "properties": {
+          "command_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "shot_id": { "type": ["string", "null"] },
+          "timeline_track": { "type": ["string", "null"] },
+          "start_seconds": { "type": ["number", "null"] },
+          "end_seconds": { "type": ["number", "null"] },
+          "placeholder_source_path": { "type": ["string", "null"] },
+          "proxy_media_path": { "type": ["string", "null"] },
+          "proxy_media_exists": { "type": "boolean" },
+          "proxy_media_sha256": { "type": ["string", "null"] },
+          "source_asset_ref": { "type": ["string", "null"] },
+          "original_src": { "type": ["string", "null"] },
+          "patched_src": { "type": ["string", "null"] },
+          "original_name": { "type": ["string", "null"] },
+          "patched_name": { "type": ["string", "null"] },
+          "execution_status": { "type": ["string", "null"] },
+          "human_execution_approved": { "type": "boolean" },
+          "human_mutation_approved": { "type": "boolean" },
+          "mutation_status": {
+            "enum": [
+              "blocked_execution_not_ready",
+              "blocked_proxy_media_missing",
+              "blocked_pending_human_mutation_approval",
+              "blocked_fcpxml_asset_ref_missing",
+              "sandbox_patch_applied"
+            ]
+          },
+          "mutation_applied": { "type": "boolean" },
+          "original_project_path": { "type": "string" },
+          "patched_project_path": { "type": "string" },
+          "rollback_action": { "type": "string", "const": "discard_patched_copy_keep_original_project" },
+          "editing_software_opened": { "type": "boolean", "const": false },
+          "original_project_mutated": { "type": "boolean", "const": false },
+          "replacement_execution_performed": { "type": "boolean", "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mutations": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "summary": { "type": "object", "additionalProperties": true },
+    "source_artifacts": { "type": "array", "items": { "type": "string" } },
+    "export_boundary": {
+      "type": "object",
+      "required": [
+        "editor_project_mutation_sandbox",
+        "original_project_mutation",
+        "sandbox_project_mutation",
+        "replacement_execution",
+        "editing_software",
+        "project_file_mutation",
+        "requires_explicit_human_mutation_approval",
+        "asset_download",
+        "external_asset_search",
+        "license_purchase",
+        "upload",
+        "publishing"
+      ],
+      "properties": {
+        "editor_project_mutation_sandbox": {
+          "enum": [
+            "blocked_pending_explicit_human_mutation_approval",
+            "sandbox_patch_generated_from_explicit_human_approval"
+          ]
+        },
+        "original_project_mutation": { "type": "string", "const": "not_performed" },
+        "sandbox_project_mutation": { "enum": ["not_performed", "performed_on_patched_copy_only"] },
+        "replacement_execution": { "type": "string", "const": "not_performed" },
+        "editing_software": { "type": "string", "const": "not_opened" },
+        "project_file_mutation": { "type": "string", "const": "patched_copy_only_original_not_mutated" },
+        "requires_explicit_human_mutation_approval": { "type": "boolean", "const": true },
+        "asset_download": { "type": "string", "const": "not_performed" },
+        "external_asset_search": { "type": "string", "const": "not_performed" },
+        "license_purchase": { "type": "string", "const": "not_performed" },
+        "upload": { "type": "string", "const": "not_performed" },
+        "publishing": { "type": "string", "const": "not_performed" }
+      },
+      "additionalProperties": false
+    },
+    "validation": { "type": "object", "additionalProperties": true },
+    "generation_status": {
+      "type": "string",
+      "const": "generated_local_project_mutation_sandbox_pending_final_human_review"
+    },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "human_mutation_approval_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

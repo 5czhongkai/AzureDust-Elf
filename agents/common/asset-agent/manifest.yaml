@@ -1,0 +1,29 @@
+id: asset-agent
+name: Asset Agent
+layer: common
+role: 规划图片、封面、截图、B-roll、素材包和视觉提示词。
+inputs:
+  - master_outline.md
+  - angle_pack.json
+  - platform_requirements
+outputs:
+  - asset_plan.json
+  - cover_prompts.md
+  - assets/asset_generation_tasks.json
+  - assets/media_asset_manifest.json
+  - assets/asset_ingest_guide.md
+tools:
+  - filesystem
+  - browser
+permissions:
+  - read_artifacts
+  - write_artifacts
+  - network_read
+handoffs:
+  - compliance-agent
+quality_gates:
+  - assets_have_usage_notes
+  - copyright_status_is_explicit
+  - video_platforms_have_shot_and_broll_lists
+  - asset_tasks_are_planned_not_executed
+  - media_manifest_requires_human_rights_review

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://content-agent-os.local/schemas/editor_replacement_commands.schema.json",
+  "title": "EditorReplacementCommands",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "topic",
+    "platform",
+    "platform_label",
+    "manifest_path",
+    "replacement_commands_path",
+    "commands",
+    "summary",
+    "export_boundary",
+    "validation",
+    "manual_review_required",
+    "human_confirmation_required",
+    "review_required"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "phase4.editor_replacement_commands.v1" },
+    "artifact_type": { "type": "string", "const": "editor_replacement_commands" },
+    "run_id": { "type": "string" },
+    "topic": { "type": "string" },
+    "platform": { "enum": ["douyin", "shipinhao", "bilibili"] },
+    "platform_label": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "replacement_commands_path": { "type": "string" },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "command_id",
+          "command_type",
+          "target_editor",
+          "asset_id",
+          "instruction_status",
+          "can_execute_after_human_confirmation",
+          "human_confirmation_required",
+          "confirmation_gate_status",
+          "execution_status",
+          "dry_run_only"
+        ],
+        "properties": {
+          "command_id": { "type": "string" },
+          "command_type": { "type": "string", "const": "nle_broll_replacement" },
+          "target_editor": { "type": "string", "const": "fcpxml_compatible_editor" },
+          "asset_id": { "type": "string" },
+          "shot_id": { "type": ["string", "null"] },
+          "timeline_track": { "type": ["string", "null"] },
+          "start_seconds": { "type": ["number", "null"] },
+          "end_seconds": { "type": ["number", "null"] },
+          "placeholder_source_path": { "type": ["string", "null"] },
+          "proxy_media_path": { "type": ["string", "null"] },
+          "proxy_media_sha256": { "type": ["string", "null"] },
+          "instruction_status": { "type": "string" },
+          "can_execute_after_human_confirmation": { "type": "boolean" },
+          "human_confirmation_required": { "type": "boolean", "const": true },
+          "confirmation_gate_status": { "type": "string", "const": "pending_human_confirmation" },
+          "execution_status": { "type": "string", "const": "not_executed" },
+          "dry_run_only": { "type": "boolean", "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": { "type": "object", "additionalProperties": true },
+    "export_boundary": { "type": "object", "additionalProperties": true },
+    "validation": { "type": "object", "additionalProperties": true },
+    "manual_review_required": { "type": "boolean", "const": true },
+    "human_confirmation_required": { "type": "boolean", "const": true },
+    "review_required": { "type": "boolean", "const": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,26 @@
+id: licensed-media-ingest-agent
+name: Licensed Media Ingest Agent
+layer: common
+role: 根据本地 B-roll reference 素材清单生成授权素材接收清单和人工 review handoff，不搜索、下载、购买、上传、发布或打开剪辑软件。
+inputs:
+  - assets/{platform}/materials/material_manifest.json
+  - assets/{platform}/licensed_media/human_media_registry.json
+outputs:
+  - assets/{platform}/licensed_media/ingest_manifest.json
+  - assets/{platform}/licensed_media/README.md
+  - assets/{platform}/licensed_media/review_handoff.md
+tools:
+  - filesystem
+permissions:
+  - read_artifacts
+  - write_artifacts
+handoffs:
+  - edit-project-agent
+  - export-project-agent
+  - project-bundle-agent
+  - compliance-agent
+quality_gates:
+  - licensed_media_review_handoff_generated
+  - human_media_registry_optional_and_local_only
+  - no_external_asset_search_download_purchase_upload_or_publish
+  - final_media_requires_human_rights_confirmation
