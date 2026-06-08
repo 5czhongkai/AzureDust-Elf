@@ -1,6 +1,6 @@
 [project]
 name = "content-agent-os"
-version = "0.0.0"
+version = "0.1.0"
 description = "Multi-agent content creation automation system skeleton"
 requires-python = ">=3.11"
 dependencies = [

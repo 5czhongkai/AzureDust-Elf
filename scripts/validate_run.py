@@ -2036,6 +2036,7 @@ def main() -> int:
     validate_state_store(run_dir, workflow_run)
     if workflow_run.get("status") != "DONE":
         fail(f"workflow status is not DONE: {workflow_run.get('status')}")
+    selected_platforms = workflow_run.get("platforms", [])
 
     task_runs = workflow_run.get("task_runs", [])
     if not task_runs:
@@ -2056,6 +2057,10 @@ def main() -> int:
                 fail(f"task declared artifact is missing: {artifact_path}")
 
     modes_by_step = {item.get("step_id"): item.get("execution_mode") for item in task_runs}
+    status_by_step = {item.get("step_id"): item.get("status") for item in task_runs}
+    passed_steps = {step_id for step_id, status in status_by_step.items() if status == "PASSED"}
+    selected_video_platforms = [platform for platform in selected_platforms if platform in {"douyin", "shipinhao", "bilibili"}]
+    video_pipeline_ran = "visual_assets" in passed_steps
     logs_by_step = {}
     for task_run in task_runs:
         if task_run.get("status") == "SKIPPED" or not task_run.get("log_path"):
@@ -2069,7 +2074,7 @@ def main() -> int:
         if metadata.get("agent_interface") != "run_agent(task_spec)":
             fail(f"{step_id} task log does not prove run_agent(task_spec) execution")
 
-    if "visual_assets" in modes_by_step:
+    if video_pipeline_ran:
         if modes_by_step.get("visual_assets") != "agent-local":
             fail(f"visual_assets must run through run_agent(task_spec); got {modes_by_step.get('visual_assets')!r}")
         metadata = logs_by_step.get("visual_assets", {}).get("agent_result", {}).get("metadata", {})
@@ -2121,7 +2126,6 @@ def main() -> int:
     if not angle_pack.get("angles"):
         fail("angle_pack.json has no angles")
 
-    selected_platforms = workflow_run.get("platforms", [])
     if "wechat" in selected_platforms:
         if modes_by_step.get("wechat_article") != "agent-local":
             fail(f"wechat_article must run through run_agent(task_spec); got {modes_by_step.get('wechat_article')!r}")
@@ -2212,12 +2216,12 @@ def main() -> int:
             fail("douyin_video did not declare use of angle_pack.json")
         if metadata.get("used_master_outline") is not True:
             fail("douyin_video did not declare use of master_outline.md")
-        if "visual_assets" in modes_by_step and metadata.get("used_asset_plan") is not True:
+        if video_pipeline_ran and metadata.get("used_asset_plan") is not True:
             fail("douyin_video did not declare use of asset_plan.json")
         for source in ["angle_pack.json", "master_outline.md"]:
             if source not in metadata.get("source_artifacts", []):
                 fail(f"douyin_video source_artifacts must include {source}")
-        if "visual_assets" in modes_by_step and "asset_plan.json" not in metadata.get("source_artifacts", []):
+        if video_pipeline_ran and "asset_plan.json" not in metadata.get("source_artifacts", []):
             fail("douyin_video source_artifacts must include asset_plan.json")
 
         script_path = run_dir / "douyin/script.md"
@@ -2331,7 +2335,7 @@ def main() -> int:
             fail("douyin_project_bundle task log does not prove run_agent(task_spec) execution")
         if bundle_metadata.get("bundle_status") != "PASSED":
             fail("douyin_project_bundle metadata must report PASSED bundle")
-        if "visual_assets" in modes_by_step:
+        if video_pipeline_ran:
             for extra_path in ["douyin/shot_list.json", "douyin/broll_list.json", "douyin/cover_prompt.md"]:
                 if not (run_dir / extra_path).exists():
                     fail(f"douyin video production deliverable is missing: {extra_path}")
@@ -2349,12 +2353,12 @@ def main() -> int:
             fail("shipinhao_video did not declare use of angle_pack.json")
         if metadata.get("used_master_outline") is not True:
             fail("shipinhao_video did not declare use of master_outline.md")
-        if "visual_assets" in modes_by_step and metadata.get("used_asset_plan") is not True:
+        if video_pipeline_ran and metadata.get("used_asset_plan") is not True:
             fail("shipinhao_video did not declare use of asset_plan.json")
         for source in ["angle_pack.json", "master_outline.md"]:
             if source not in metadata.get("source_artifacts", []):
                 fail(f"shipinhao_video source_artifacts must include {source}")
-        if "visual_assets" in modes_by_step and "asset_plan.json" not in metadata.get("source_artifacts", []):
+        if video_pipeline_ran and "asset_plan.json" not in metadata.get("source_artifacts", []):
             fail("shipinhao_video source_artifacts must include asset_plan.json")
 
         script_path = run_dir / "shipinhao/script.md"
@@ -2474,7 +2478,7 @@ def main() -> int:
             fail("shipinhao cover prompt is missing")
         if "Shipinhao Cover Prompt" not in cover_prompt.read_text(encoding="utf-8"):
             fail("shipinhao cover prompt does not contain expected heading")
-        if "visual_assets" in modes_by_step:
+        if video_pipeline_ran:
             for extra_path in ["shipinhao/shot_list.json", "shipinhao/broll_list.json"]:
                 if not (run_dir / extra_path).exists():
                     fail(f"shipinhao video production deliverable is missing: {extra_path}")
@@ -2494,12 +2498,12 @@ def main() -> int:
             fail("bilibili_video did not declare use of master_outline.md")
         if metadata.get("used_research_report") is not True:
             fail("bilibili_video did not declare use of research_report.md")
-        if "visual_assets" in modes_by_step and metadata.get("used_asset_plan") is not True:
+        if video_pipeline_ran and metadata.get("used_asset_plan") is not True:
             fail("bilibili_video did not declare use of asset_plan.json")
         for source in ["angle_pack.json", "master_outline.md", "research_report.md"]:
             if source not in metadata.get("source_artifacts", []):
                 fail(f"bilibili_video source_artifacts must include {source}")
-        if "visual_assets" in modes_by_step and "asset_plan.json" not in metadata.get("source_artifacts", []):
+        if video_pipeline_ran and "asset_plan.json" not in metadata.get("source_artifacts", []):
             fail("bilibili_video source_artifacts must include asset_plan.json")
 
         script_path = run_dir / "bilibili/script.md"
@@ -2624,7 +2628,7 @@ def main() -> int:
             fail("bilibili_project_bundle task log does not prove run_agent(task_spec) execution")
         if bundle_metadata.get("bundle_status") != "PASSED":
             fail("bilibili_project_bundle metadata must report PASSED bundle")
-        if "visual_assets" in modes_by_step:
+        if video_pipeline_ran:
             for extra_path in [
                 "bilibili/storyboard.json",
                 "bilibili/subtitles.srt",
@@ -2646,7 +2650,7 @@ def main() -> int:
         fail("content package must require human review")
     if package.get("platforms") != workflow_run.get("platforms"):
         fail("content package platforms do not match workflow run platforms")
-    if "visual_assets" in modes_by_step:
+    if video_pipeline_ran:
         if package.get("video_production_package") != "final/video_production_package.json":
             fail("content package must reference final/video_production_package.json")
         if package.get("materialization_manifest") != "final/materialization_manifest.json":
@@ -2727,9 +2731,10 @@ def main() -> int:
             "artifact_store/download_index.md",
             "artifact_store/checksums.sha256",
             "artifact_store/manifests/delivery_index.json",
-            "artifact_store/downloads/douyin_project_bundle.zip",
-            "artifact_store/downloads/shipinhao_project_bundle.zip",
-            "artifact_store/downloads/bilibili_project_bundle.zip",
+            *[
+                f"artifact_store/downloads/{platform}_project_bundle.zip"
+                for platform in selected_video_platforms
+            ],
         ]:
             if artifact_store_path not in workflow_run.get("artifacts", []):
                 fail(f"workflow artifacts must include {artifact_store_path}")
@@ -3804,7 +3809,7 @@ def main() -> int:
     print(f"Artifacts: {len(artifact_manifest.get('artifacts', []))}")
     print(f"Supervision: {monitor_report_path}")
     agent_local_steps = ["research", "topic_angles", "master_outline"]
-    if "visual_assets" in modes_by_step:
+    if video_pipeline_ran:
         agent_local_steps.append("visual_assets")
     if "wechat" in selected_platforms:
         agent_local_steps.append("wechat_article")
@@ -3864,11 +3869,11 @@ def main() -> int:
         agent_local_steps.append("bilibili_editor_software_real_runner_sandbox")
         agent_local_steps.append("bilibili_editor_software_run_evidence")
         agent_local_steps.append("bilibili_project_bundle")
-    if "delivery_index" in modes_by_step:
+    if "delivery_index" in passed_steps:
         agent_local_steps.append("delivery_index")
-    if "artifact_store" in modes_by_step:
+    if "artifact_store" in passed_steps:
         agent_local_steps.append("artifact_store")
-    if "external_mirror_plan" in modes_by_step:
+    if "external_mirror_plan" in passed_steps:
         agent_local_steps.append("external_mirror_plan")
     print(f"Agent-local steps: {', '.join(agent_local_steps)}")
     return 0

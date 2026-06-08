@@ -19,6 +19,14 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from .api_key_store import (
+    PLATFORM_API_KEY_ENV_KEYS,
+    api_key_store_path,
+    apply_stored_api_keys,
+    is_api_key_store_file,
+    load_api_key_store,
+    write_api_key_store,
+)
 from .job_queue import (
     CLEANUP_CONFIRMATION,
     DEFAULT_AUDIT_RETENTION_DAYS,
@@ -37,6 +45,7 @@ SECRET_ENV_KEYS = [
     "OPENAI_API_KEY",
     "SILICONFLOW_API_KEY",
     "CONTENT_AGENT_OS_TTS_API_KEY",
+    *PLATFORM_API_KEY_ENV_KEYS.values(),
 ]
 RUNTIME_ENV_KEYS = [
     "CONTENT_AGENT_ENV",
@@ -57,6 +66,14 @@ PLATFORM_LABELS = {
     "shipinhao": "视频号",
     "bilibili": "B站",
 }
+API_KEY_TARGETS = [
+    {
+        "id": platform,
+        "label": PLATFORM_LABELS[platform],
+        "env_key": PLATFORM_API_KEY_ENV_KEYS[platform],
+    }
+    for platform in DEFAULT_PLATFORMS
+]
 PLATFORM_PRIMARY_FILES = {
     "wechat": ["wechat/article.md", "wechat/title_options.json"],
     "xiaohongshu": ["xiaohongshu/note.json", "xiaohongshu/cover_prompt.md"],
@@ -80,7 +97,76 @@ class ConsoleConfig:
 class ConsoleRuntime:
     def __init__(self, config: ConsoleConfig) -> None:
         self.config = config
+        self.api_key_store_path = api_key_store_path(config.output_root)
+        self._apply_stored_api_keys()
         self.job_store = DurableJobStore(job_db_path(config.output_root))
+
+    def api_key_status(self) -> dict[str, Any]:
+        stored = self._load_api_key_store()
+        targets = []
+        for target in API_KEY_TARGETS:
+            target_id = str(target["id"])
+            env_key = str(target["env_key"])
+            configured_by_console = bool(str(stored.get(target_id) or "").strip())
+            configured_by_environment = bool(os.environ.get(env_key, "").strip())
+            targets.append(
+                {
+                    "id": target_id,
+                    "label": target["label"],
+                    "env_key": env_key,
+                    "configured": configured_by_console or configured_by_environment,
+                    "source": "console" if configured_by_console else "environment" if configured_by_environment else None,
+                    "value": None,
+                }
+            )
+        configured_count = sum(1 for item in targets if item["configured"])
+        return {
+            "schema_version": "phase5.api_key_status.v1",
+            "generated_at": _utc_now_iso(),
+            "store_path": str(self.api_key_store_path),
+            "targets": targets,
+            "configured_count": configured_count,
+            "target_count": len(targets),
+            "secret_policy": "API Key 为只写配置；控制台接口不会返回真实值。",
+        }
+
+    def save_api_keys(self, payload: dict[str, Any]) -> dict[str, Any]:
+        raw_keys = payload.get("keys") or {}
+        if not isinstance(raw_keys, dict):
+            raise ValueError("keys must be an object")
+        allowed = {str(target["id"]): str(target["env_key"]) for target in API_KEY_TARGETS}
+        unknown = [key for key in raw_keys if key not in allowed]
+        if unknown:
+            raise ValueError(f"unknown api key target(s): {', '.join(sorted(unknown))}")
+
+        stored = self._load_api_key_store()
+        changed: list[str] = []
+        for target_id, raw_value in raw_keys.items():
+            value = str(raw_value or "").strip()
+            if not value:
+                continue
+            stored[target_id] = value
+            os.environ[allowed[target_id]] = value
+            changed.append(target_id)
+        if changed:
+            self._write_api_key_store(stored)
+        return {
+            "schema_version": "phase5.api_key_save_result.v1",
+            "updated_at": _utc_now_iso(),
+            "updated_targets": changed,
+            "api_keys": self.api_key_status(),
+            "env": self.environment_status(),
+            "secret_policy": "已保存的 API Key 不会在响应中返回真实值。",
+        }
+
+    def _apply_stored_api_keys(self) -> None:
+        apply_stored_api_keys(self.config.output_root)
+
+    def _load_api_key_store(self) -> dict[str, str]:
+        return load_api_key_store(self.config.output_root)
+
+    def _write_api_key_store(self, keys: dict[str, str]) -> None:
+        write_api_key_store(self.config.output_root, keys, updated_at=_utc_now_iso())
 
     def health(self) -> dict[str, Any]:
         return {
@@ -166,6 +252,7 @@ class ConsoleRuntime:
         }
 
     def environment_status(self) -> dict[str, Any]:
+        self._apply_stored_api_keys()
         secrets = [
             {
                 "name": key,
@@ -443,16 +530,19 @@ class ConsoleRuntime:
             _write_json(upload_root / "upload_manifest.json", manifest)
         return manifest
 
-    def platform_content(self, run_id: str, platform: str) -> dict[str, Any]:
+    def platform_content(self, run_id: str, platform: str, *, content_limit: int | None = 300000) -> dict[str, Any]:
         self._validate_platform(platform)
         run_dir = self._resolve_run_dir(run_id)
         workflow_run = _load_json(run_dir / "workflow_run.json")
+        selected_platforms = workflow_run.get("platforms", [])
+        if isinstance(selected_platforms, list) and selected_platforms and platform not in selected_platforms:
+            raise ValueError(f"platform was not selected for this run: {platform}")
         files = []
         for relative in PLATFORM_PRIMARY_FILES[platform]:
             path = _safe_run_file(run_dir, relative)
             if path is None or not path.exists() or not path.is_file():
                 continue
-            files.append(_content_file_card(run_dir, path))
+            files.append(_content_file_card(run_dir, path, content_limit=content_limit))
         manifest = _load_json(run_dir / "final/content_package_manifest.json")
         artifacts = [
             artifact
@@ -473,7 +563,7 @@ class ConsoleRuntime:
         }
 
     def platform_download(self, run_id: str, platform: str) -> tuple[str, bytes, str]:
-        content = self.platform_content(run_id, platform)
+        content = self.platform_content(run_id, platform, content_limit=None)
         lines = [
             f"# {content['platform_label']}生成内容",
             "",
@@ -498,10 +588,67 @@ class ConsoleRuntime:
         filename = f"{run_id}_{platform}_content.md"
         return filename, ("\n".join(lines) + "\n").encode("utf-8"), "text/markdown; charset=utf-8"
 
+    def run_content(self, run_id: str) -> dict[str, Any]:
+        run_dir = self._resolve_run_dir(run_id)
+        workflow_run = _load_json(run_dir / "workflow_run.json")
+        selected_platforms = workflow_run.get("platforms", [])
+        if not isinstance(selected_platforms, list) or not selected_platforms:
+            selected_platforms = list(self.config.default_platforms or DEFAULT_PLATFORMS)
+        platforms = []
+        for platform in selected_platforms:
+            platform_id = str(platform)
+            if platform_id not in PLATFORM_LABELS:
+                continue
+            platforms.append(self.platform_content(run_id, platform_id, content_limit=None))
+        return {
+            "schema_version": "phase5.run_content.v1",
+            "generated_at": _utc_now_iso(),
+            "run_id": run_id,
+            "topic": workflow_run.get("topic"),
+            "status": workflow_run.get("status"),
+            "run_dir": str(run_dir),
+            "platforms": platforms,
+            "download_url": f"/runs/{run_id}/content/download",
+        }
+
+    def run_content_download(self, run_id: str) -> tuple[str, bytes, str]:
+        content = self.run_content(run_id)
+        lines = [
+            f"# {content.get('topic') or run_id}",
+            "",
+            f"- 运行记录: {run_id}",
+            f"- 状态: {content.get('status') or ''}",
+            "",
+        ]
+        for platform in content["platforms"]:
+            lines.extend(
+                [
+                    f"## {platform['platform_label']}生成内容",
+                    "",
+                ]
+            )
+            if not platform.get("files"):
+                lines.extend(["暂无可下载的平台主内容。", ""])
+                continue
+            for item in platform["files"]:
+                lines.extend(
+                    [
+                        f"### {item['label']}",
+                        "",
+                        f"文件: `{item['path']}`",
+                        "",
+                        str(item.get("content") or ""),
+                        "",
+                    ]
+                )
+        filename = f"{run_id}_all_content.md"
+        return filename, ("\n".join(lines) + "\n").encode("utf-8"), "text/markdown; charset=utf-8"
+
     def start_run(self, topic: str, platforms: list[str], attachments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         topic = topic.strip()
         if not topic:
             raise ValueError("topic is required")
+        self._apply_stored_api_keys()
         selected_platforms = platforms or self.config.default_platforms
         job = self.job_store.create_run_job(
             workflow_path=self.config.workflow_path,
@@ -516,6 +663,7 @@ class ConsoleRuntime:
 
     def start_resume(self, run_id: str) -> dict[str, Any]:
         self._validate_run_id(run_id)
+        self._apply_stored_api_keys()
         job = self.job_store.create_resume_job(run_id=run_id)
         if self.config.execute_inline_jobs:
             thread = threading.Thread(target=self._execute_job, args=(str(job["job_id"]), "console-inline"), daemon=True)
@@ -577,7 +725,9 @@ class ConsoleRuntime:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         backup_path = self.config.backup_root / f"content_agent_os_backup_{timestamp}_{uuid.uuid4().hex[:8]}.zip"
         source_root = self.config.output_root
-        files = [path for path in sorted(source_root.rglob("*")) if path.is_file()] if source_root.exists() else []
+        all_files = [path for path in sorted(source_root.rglob("*")) if path.is_file()] if source_root.exists() else []
+        files = [path for path in all_files if not is_api_key_store_file(source_root, path)]
+        excluded_secret_files = len(all_files) - len(files)
         total_bytes = sum(path.stat().st_size for path in files)
         manifest = {
             "schema_version": "phase5.backup_manifest.v1",
@@ -586,7 +736,8 @@ class ConsoleRuntime:
             "backup_path": str(backup_path),
             "file_count": len(files),
             "total_bytes": total_bytes,
-            "secret_policy": "Environment variables and secret values are not included.",
+            "excluded_secret_file_count": excluded_secret_files,
+            "secret_policy": "Environment variables, API key stores, and secret values are not included.",
             "restore_note": "Unzip this archive at the project root to restore outputs/runs contents.",
         }
         with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -717,6 +868,9 @@ class ConsoleRuntime:
                     if info.filename == "backup_manifest.json":
                         manifest = _load_json_from_zip(archive, info.filename)
                         continue
+                    if PurePosixPath(info.filename).as_posix() == "outputs/runs/_state/api_keys.json":
+                        unsafe_entries.append(info.filename)
+                        continue
                     target_path = _restore_target_path(self.config.output_root, info.filename)
                     if target_path is None:
                         unsafe_entries.append(info.filename)
@@ -778,11 +932,21 @@ def make_console_handler(runtime: ConsoleRuntime) -> type[BaseHTTPRequestHandler
                 if parsed.path in {"/admin", "/admin/"}:
                     self._send_html(render_admin_console_html(runtime))
                     return
+                if len(parts) == 3 and parts[0] == "runs" and parts[2] == "content":
+                    self._send_html(render_run_content_html(runtime, parts[1]))
+                    return
+                if len(parts) == 4 and parts[0] == "runs" and parts[2] == "content" and parts[3] == "download":
+                    filename, body, content_type = runtime.run_content_download(parts[1])
+                    self._send_bytes(body, filename=filename, content_type=content_type)
+                    return
                 if parsed.path == "/healthz":
                     self._send_json(runtime.health())
                     return
                 if parts == ["api", "env"]:
                     self._send_json(runtime.environment_status())
+                    return
+                if parts == ["api", "api-keys"]:
+                    self._send_json(runtime.api_key_status())
                     return
                 if parts == ["api", "setup-check"]:
                     self._send_json(runtime.setup_check())
@@ -848,6 +1012,10 @@ def make_console_handler(runtime: ConsoleRuntime) -> type[BaseHTTPRequestHandler
                     if not isinstance(files, list):
                         raise ValueError("files must be a list")
                     self._send_json(runtime.upload_inputs(files), status=HTTPStatus.CREATED)
+                    return
+                if parts == ["api", "api-keys"]:
+                    payload = self._read_json_body()
+                    self._send_json(runtime.save_api_keys(payload), status=HTTPStatus.OK)
                     return
                 if len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "resume":
                     job = runtime.start_resume(parts[2])
@@ -960,7 +1128,7 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
             {"id": platform, "label": PLATFORM_LABELS.get(platform, platform)}
             for platform in DEFAULT_PLATFORMS
         ],
-        "default_platforms": list(DEFAULT_PLATFORMS),
+        "default_platforms": list(runtime.config.default_platforms),
         "limits": {
             "max_upload_mb": MAX_UPLOAD_BYTES // 1024 // 1024,
             "max_uploads": MAX_UPLOADS_PER_REQUEST,
@@ -991,17 +1159,13 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       --amber-soft: #fff3d8;
       --red: #a43a32;
       --red-soft: #fdecea;
-      --shadow: 0 14px 34px rgba(23, 32, 28, .08);
+      --shadow: 0 1px 2px rgba(23, 32, 28, .05);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-width: 320px;
-      background:
-        linear-gradient(90deg, rgba(20, 118, 91, .06) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(20, 118, 91, .05) 1px, transparent 1px),
-        var(--bg);
-      background-size: 44px 44px;
+      background: var(--bg);
       color: var(--ink);
       font: 14px/1.5 "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
       letter-spacing: 0;
@@ -1058,12 +1222,11 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     .brand-mark {
       width: 34px;
       height: 34px;
-      border: 2px solid var(--ink);
+      border: 1px solid var(--ink);
       border-radius: 7px;
       display: grid;
       place-items: center;
       background: #fff;
-      box-shadow: 4px 4px 0 var(--accent);
       font-weight: 900;
     }
     h1 { margin: 0; font-size: 20px; line-height: 1.2; }
@@ -1081,14 +1244,30 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       padding: 16px;
       max-width: 1480px;
       margin: 0 auto;
+      align-items: stretch;
     }
-    .column { display: grid; gap: 16px; align-content: start; }
+    .column {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      gap: 16px;
+      align-content: stretch;
+      min-width: 0;
+    }
     section {
       background: var(--surface);
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
       padding: 16px;
+    }
+    .workspace-card {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .workspace-card .task-list {
+      flex: 1;
+      align-content: start;
     }
     .section-head {
       display: flex;
@@ -1124,6 +1303,47 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     textarea:focus, input[type="text"]:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(20, 118, 91, .14);
+    }
+    .platform-picker {
+      display: grid;
+      gap: 9px;
+    }
+    .platform-picker-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .platform-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      gap: 8px;
+    }
+    .platform-option {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 7px;
+      align-items: center;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .platform-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+    .platform-option input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
     }
     .composer-actions {
       display: flex;
@@ -1169,6 +1389,19 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       font-size: 12px;
       font-weight: 800;
     }
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      max-width: 100%;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
     .status.ok, .status.done, .status.present, .status.set, .status.ready {
       background: var(--accent-soft);
       color: var(--accent-strong);
@@ -1182,26 +1415,29 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       color: var(--red);
     }
     .status-strip {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
     }
     .metric {
       border: 1px solid var(--line);
       border-radius: 7px;
-      padding: 10px;
+      padding: 7px 9px;
       background: var(--surface-soft);
       min-width: 0;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
     }
     .metric strong {
-      display: block;
-      font-size: 22px;
+      display: inline;
+      font-size: 16px;
       line-height: 1;
-      margin-bottom: 4px;
+      margin-bottom: 0;
     }
-    .job-list, .run-list, .ops-list { display: grid; gap: 8px; }
-    .job-row, .run-row, .ops-row {
+    .job-list, .run-list, .task-list, .ops-list { display: grid; gap: 8px; }
+    .job-row, .run-row, .task-row, .ops-row {
       display: grid;
       gap: 10px;
       border: 1px solid var(--line);
@@ -1209,7 +1445,7 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       padding: 10px;
       background: #fff;
     }
-    .job-row {
+    .job-row, .task-row {
       grid-template-columns: minmax(0, 1.4fr) auto;
       align-items: center;
     }
@@ -1227,61 +1463,16 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       flex-wrap: wrap;
       gap: 6px;
     }
-    .tabs {
+    .filter-bar {
       display: flex;
       gap: 6px;
       overflow-x: auto;
       padding-bottom: 2px;
     }
-    .tab {
-      border-color: var(--line-strong);
-      background: #fff;
-      color: var(--ink);
-    }
-    .tab.active {
+    .filter-bar button.active {
       border-color: var(--accent);
       background: var(--accent);
       color: #fff;
-    }
-    .preview-shell {
-      display: grid;
-      gap: 12px;
-    }
-    .preview-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .content-files {
-      display: grid;
-      gap: 10px;
-    }
-    .content-file {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .content-file header {
-      position: static;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface-soft);
-    }
-    pre {
-      margin: 0;
-      padding: 12px;
-      max-height: 520px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
     details {
       border: 1px solid var(--line);
@@ -1327,8 +1518,13 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     @media (max-width: 980px) {
       header { grid-template-columns: 1fr; }
       main { grid-template-columns: 1fr; padding: 12px; }
-      .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .job-row { grid-template-columns: 1fr; }
+      .column {
+        grid-template-rows: auto;
+        align-content: start;
+      }
+      .workspace-card { min-height: 0; }
+      .status-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .job-row, .task-row { grid-template-columns: 1fr; }
       .row-actions { justify-content: flex-start; }
       .command { grid-template-columns: 1fr; }
     }
@@ -1341,7 +1537,7 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       <div class="brand-mark">创</div>
       <div>
         <h1>自媒体内容创作工作台</h1>
-        <div class="meta">输入选题，上传素材，查看队列，并按平台预览生成内容。</div>
+        <div class="meta">输入选题，上传素材，查看队列，并在独立窗口阅读生成内容。</div>
       </div>
     </div>
     <div class="row-actions">
@@ -1353,7 +1549,7 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
 
   <main>
     <div class="column">
-      <section>
+      <section class="workspace-card">
         <div class="section-head">
           <div>
             <h2>创作输入</h2>
@@ -1364,6 +1560,16 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
           <div>
             <label for="topic">选题 / 创作要求</label>
             <textarea id="topic" name="topic" required placeholder="例如：用通俗、有案例的方式讲清楚 AI 自动化如何帮助本地生活商家做内容矩阵。"></textarea>
+          </div>
+          <div class="platform-picker">
+            <div class="platform-picker-head">
+              <label>生成平台</label>
+              <div class="row-actions">
+                <span id="platform-summary" class="meta"></span>
+                <button class="secondary" type="button" id="select-all-platforms">全选五个平台</button>
+              </div>
+            </div>
+            <div id="platform-options" class="platform-options"></div>
           </div>
           <div>
             <label>素材附件</label>
@@ -1381,50 +1587,25 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
         <div id="composer-toast" class="toast"></div>
       </section>
 
-      <section>
-        <div class="section-head">
-          <div>
-            <h2>最近生成</h2>
-            <div class="meta">已完成的任务可直接查看平台内容。</div>
-          </div>
-        </div>
-        <div id="run-list" class="run-list"></div>
-      </section>
-
     </div>
 
     <div class="column">
-      <section>
+      <section class="workspace-card">
         <div class="section-head">
           <div>
-            <h2>队列状态</h2>
-            <div class="meta">排队、生成中、完成和失败会自动刷新；完成后点击“查看”。</div>
+            <h2>任务与队列状态</h2>
+            <div class="meta">进行中的队列和最近生成集中在这里。</div>
           </div>
-          <div class="row-actions">
+          <div class="filter-bar">
             <button class="secondary" type="button" data-job-filter="">全部</button>
             <button class="secondary" type="button" data-job-filter="QUEUED">排队中</button>
             <button class="secondary" type="button" data-job-filter="RUNNING">生成中</button>
             <button class="secondary" type="button" data-job-filter="FAILED">失败</button>
+            <button class="secondary" type="button" data-job-filter="DONE">已完成</button>
           </div>
         </div>
         <div id="queue-metrics" class="status-strip"></div>
-        <div id="job-list" class="job-list"></div>
-      </section>
-
-      <section>
-        <div class="section-head">
-          <div>
-            <h2>生成内容预览</h2>
-            <div id="preview-subtitle" class="meta">选择一个已完成任务后查看。</div>
-          </div>
-          <a id="download-button" class="button secondary" href="#" aria-disabled="true">下载当前内容</a>
-        </div>
-        <div class="preview-shell">
-          <div id="platform-tabs" class="tabs"></div>
-          <div id="content-files" class="content-files">
-            <div class="empty">暂无选中的生成结果。</div>
-          </div>
-        </div>
+        <div id="task-list" class="task-list"></div>
       </section>
 
     </div>
@@ -1435,12 +1616,11 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     const state = {
       platforms: initialState.platforms || [],
       defaultPlatforms: initialState.default_platforms || [],
+      selectedPlatforms: [...(initialState.default_platforms || [])],
       runs: initialState.runs || [],
       jobs: initialState.jobs || [],
       queueHealth: initialState.queue_health || {},
       attachments: [],
-      selectedRunId: null,
-      selectedPlatform: 'wechat',
       jobFilter: ''
     };
 
@@ -1469,13 +1649,11 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       attachmentList: document.querySelector('#attachment-list'),
       submitRun: document.querySelector('#submit-run'),
       composerToast: document.querySelector('#composer-toast'),
-      runList: document.querySelector('#run-list'),
+      platformOptions: document.querySelector('#platform-options'),
+      platformSummary: document.querySelector('#platform-summary'),
+      selectAllPlatforms: document.querySelector('#select-all-platforms'),
       queueMetrics: document.querySelector('#queue-metrics'),
-      jobList: document.querySelector('#job-list'),
-      platformTabs: document.querySelector('#platform-tabs'),
-      contentFiles: document.querySelector('#content-files'),
-      previewSubtitle: document.querySelector('#preview-subtitle'),
-      downloadButton: document.querySelector('#download-button'),
+      taskList: document.querySelector('#task-list'),
       maxUploadMb: document.querySelector('#max-upload-mb')
     };
 
@@ -1501,6 +1679,22 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       const key = String(status || 'unknown');
       const label = labels[key] || labels[key.toUpperCase()] || key;
       return `<span class="status ${statusClass(key)}">${escapeHtml(label)}</span>`;
+    }
+
+    function platformLabel(platformId) {
+      const platform = state.platforms.find((item) => item.id === platformId);
+      return platform?.label || platformId || '平台未记录';
+    }
+
+    function platformSummary(platforms) {
+      const ids = Array.isArray(platforms) ? platforms.map((item) => String(item || '').trim()).filter(Boolean) : [];
+      if (!ids.length) return '平台未记录';
+      return ids.map(platformLabel).join(' / ');
+    }
+
+    function platformBadge(platforms) {
+      const label = platformSummary(platforms);
+      return `<span class="platform-badge" title="${escapeHtml(label)}">平台：${escapeHtml(label)}</span>`;
     }
 
     function showComposer(message) {
@@ -1534,10 +1728,42 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       els.healthPill.className = `status ${statusClass(healthStatus)}`;
       els.healthPill.textContent = `系统${labels[healthStatus] || healthStatus}`;
       els.maxUploadMb.textContent = initialState.limits?.max_upload_mb || '';
-      renderPlatformTabs();
+      renderPlatformPicker();
       renderAttachments();
-      renderRuns();
-      renderQueue();
+      renderTasks();
+    }
+
+    function orderedPlatformIds(ids) {
+      const selected = new Set(ids);
+      return state.platforms.map((platform) => platform.id).filter((id) => selected.has(id));
+    }
+
+    function renderPlatformPicker() {
+      const selected = new Set(state.selectedPlatforms);
+      els.platformOptions.innerHTML = state.platforms.map((platform) => `
+        <label class="platform-option ${selected.has(platform.id) ? 'selected' : ''}">
+          <input type="checkbox" value="${escapeHtml(platform.id)}" ${selected.has(platform.id) ? 'checked' : ''}>
+          <span>${escapeHtml(platform.label)}</span>
+        </label>
+      `).join('');
+      els.platformSummary.textContent = `已选 ${state.selectedPlatforms.length}/${state.platforms.length}`;
+      for (const checkbox of els.platformOptions.querySelectorAll('input[type="checkbox"]')) {
+        checkbox.addEventListener('change', () => {
+          const next = new Set(state.selectedPlatforms);
+          if (checkbox.checked) {
+            next.add(checkbox.value);
+          } else {
+            next.delete(checkbox.value);
+          }
+          if (!next.size) {
+            checkbox.checked = true;
+            showComposer('至少选择一个平台。');
+            return;
+          }
+          state.selectedPlatforms = orderedPlatformIds(next);
+          renderPlatformPicker();
+        });
+      }
     }
 
     function renderAttachments() {
@@ -1563,53 +1789,87 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       }
     }
 
-    function renderRuns() {
-      const doneRuns = state.runs.filter((run) => String(run.status || '').toUpperCase() === 'DONE');
-      const rows = (state.runs || []).slice(0, 8).map((run) => {
-        const status = String(run.status || 'unknown').toUpperCase();
-        const progress = run.completed_steps == null || run.total_steps == null
-          ? '进度未记录'
-          : `${run.completed_steps}/${run.total_steps}${run.progress_percent == null ? '' : ` (${run.progress_percent}%)`}`;
-        const canView = status === 'DONE';
-        return `
-          <div class="run-row">
-            <div class="row-title">
-              <strong>${escapeHtml(run.topic || run.run_id)}</strong>
-              ${statusPill(status)}
-            </div>
-            <div class="meta mono">${escapeHtml(run.run_id || '')}</div>
-            <div class="meta">${escapeHtml(progress)} · ${escapeHtml(run.updated_at || '')}</div>
-            <div class="row-actions">
-              ${canView ? `<button type="button" data-view-run="${escapeHtml(run.run_id)}">查看</button>` : `<button class="secondary" type="button" data-resume-run="${escapeHtml(run.run_id)}">继续生成</button>`}
-            </div>
-          </div>
-        `;
-      }).join('');
-      els.runList.innerHTML = rows || '<div class="empty">暂无生成记录。</div>';
-      for (const button of els.runList.querySelectorAll('[data-view-run]')) {
-        button.addEventListener('click', () => selectRun(button.dataset.viewRun));
-      }
-      for (const button of els.runList.querySelectorAll('[data-resume-run]')) {
-        button.addEventListener('click', async () => {
-          button.disabled = true;
-          await postJson(`/api/runs/${encodeURIComponent(button.dataset.resumeRun)}/resume`, {});
-          await refreshData();
-          button.disabled = false;
-        });
-      }
-      if (!state.selectedRunId && doneRuns.length) {
-        selectRun(doneRuns[0].run_id, { quiet: true });
-      }
+    function shortId(value) {
+      const text = String(value || '');
+      return text.length > 30 ? `${text.slice(0, 18)}...${text.slice(-8)}` : text;
     }
 
-    function renderQueue() {
+    function contentUrl(runId) {
+      return `/runs/${encodeURIComponent(String(runId || ''))}/content`;
+    }
+
+    function scheduleContentFallback(url) {
+      const destination = String(url || '').trim();
+      if (!destination) return;
+      window.setTimeout(() => {
+        if (document.visibilityState === 'visible') window.location.assign(destination);
+      }, 350);
+    }
+
+    function renderRunTask(run) {
+      const status = String(run.status || 'unknown').toUpperCase();
+      const progress = run.completed_steps == null || run.total_steps == null
+        ? '进度未记录'
+        : `${run.completed_steps}/${run.total_steps}${run.progress_percent == null ? '' : ` (${run.progress_percent}%)`}`;
+      const canView = status === 'DONE';
+      const runContentUrl = contentUrl(run.run_id);
+      return `
+        <div class="task-row">
+          <div>
+            <div class="row-title">
+              <strong>${escapeHtml(run.topic || run.run_id)}</strong>
+              ${platformBadge(run.platforms)}
+              ${statusPill(status)}
+            </div>
+            <div class="meta mono" title="${escapeHtml(run.run_id || '')}">${escapeHtml(shortId(run.run_id))}</div>
+            <div class="meta">${escapeHtml(progress)} · ${escapeHtml(run.updated_at || '')}</div>
+          </div>
+          <div class="row-actions">
+            ${canView ? `<a class="button" target="_blank" rel="noopener" href="${runContentUrl}" data-content-url="${runContentUrl}">查看</a>` : `<button class="secondary" type="button" data-resume-run="${escapeHtml(run.run_id)}">继续生成</button>`}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderJobTask(job) {
+      const status = String(job.status || 'unknown').toUpperCase();
+      const runId = job.run_id || '';
+      const actions = [];
+      if (status === 'DONE' && runId) {
+        const runContentUrl = contentUrl(runId);
+        actions.push(`<a class="button" target="_blank" rel="noopener" href="${runContentUrl}" data-content-url="${runContentUrl}">查看</a>`);
+      }
+      const attachmentCount = Array.isArray(job.attachments) ? job.attachments.length : 0;
+      return `
+        <div class="task-row">
+          <div>
+            <div class="row-title">
+              <strong>${escapeHtml(job.topic || jobKindLabel(job.kind) || job.job_id)}</strong>
+              ${platformBadge(job.platforms)}
+              ${statusPill(status)}
+            </div>
+            <div class="meta mono" title="${escapeHtml(job.job_id || '')}">${escapeHtml(shortId(job.job_id))}</div>
+            <div class="meta">
+              ${escapeHtml(jobKindLabel(job.kind))}
+              ${runId ? ` · 运行记录 ${escapeHtml(shortId(runId))}` : ''}
+              ${attachmentCount ? ` · ${attachmentCount} 个附件` : ''}
+              ${job.worker_id ? ` · 执行器 ${escapeHtml(job.worker_id)}` : ''}
+            </div>
+            ${job.error ? `<div class="meta">${escapeHtml(job.error)}</div>` : ''}
+          </div>
+          <div class="row-actions">${actions.join('')}</div>
+        </div>
+      `;
+    }
+
+    function renderTasks() {
+      const doneRuns = state.runs.filter((run) => String(run.status || '').toUpperCase() === 'DONE');
       const counts = state.queueHealth?.counts || {};
       const metrics = [
-        ['QUEUED', '排队中'],
-        ['RUNNING', '生成中'],
-        ['DONE', '已完成'],
+        ['QUEUED', '排队'],
+        ['RUNNING', '生成'],
         ['FAILED', '失败'],
-        ['CANCELED', '已取消']
+        ['DONE', '完成']
       ];
       els.queueMetrics.innerHTML = metrics.map(([key, label]) => `
         <div class="metric">
@@ -1617,90 +1877,34 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
           <span class="meta">${escapeHtml(label)}</span>
         </div>
       `).join('');
-      const jobs = state.jobs || [];
-      els.jobList.innerHTML = jobs.map((job) => {
-        const status = String(job.status || 'unknown').toUpperCase();
-        const runId = job.run_id || '';
-        const actions = [];
-        if (status === 'DONE' && runId) actions.push(`<button type="button" data-view-run="${escapeHtml(runId)}">查看</button>`);
-        const attachmentCount = Array.isArray(job.attachments) ? job.attachments.length : 0;
-        return `
-          <div class="job-row">
-            <div>
-              <div class="row-title">
-                <strong>${escapeHtml(job.topic || jobKindLabel(job.kind) || job.job_id)}</strong>
-                ${statusPill(status)}
-              </div>
-              <div class="meta mono">${escapeHtml(job.job_id || '')}</div>
-              <div class="meta">
-                ${escapeHtml(jobKindLabel(job.kind))}
-                ${runId ? ` · 运行记录 ${escapeHtml(runId)}` : ''}
-                ${attachmentCount ? ` · ${attachmentCount} 个附件` : ''}
-                ${job.worker_id ? ` · 执行器 ${escapeHtml(job.worker_id)}` : ''}
-              </div>
-              ${job.error ? `<div class="meta">${escapeHtml(job.error)}</div>` : ''}
-            </div>
-            <div class="row-actions">${actions.join('')}</div>
-          </div>
-        `;
-      }).join('') || '<div class="empty">当前没有队列任务。</div>';
-      for (const button of els.jobList.querySelectorAll('[data-view-run]')) {
-        button.addEventListener('click', () => selectRun(button.dataset.viewRun));
+      for (const button of document.querySelectorAll('[data-job-filter]')) {
+        button.classList.toggle('active', (button.dataset.jobFilter || '') === state.jobFilter);
       }
-    }
-
-    function renderPlatformTabs() {
-      els.platformTabs.innerHTML = state.platforms.map((platform) => `
-        <button class="tab ${platform.id === state.selectedPlatform ? 'active' : ''}" type="button" data-platform="${escapeHtml(platform.id)}">${escapeHtml(platform.label)}</button>
-      `).join('');
-      for (const button of els.platformTabs.querySelectorAll('[data-platform]')) {
-        button.addEventListener('click', () => {
-          state.selectedPlatform = button.dataset.platform;
-          renderPlatformTabs();
-          loadPlatformContent();
+      const rows = [];
+      if (state.jobFilter === 'DONE') {
+        rows.push(...doneRuns.slice(0, 8).map(renderRunTask));
+      } else {
+        const visibleJobs = (state.jobs || []).filter((job) => {
+          const status = String(job.status || '').toUpperCase();
+          if (state.jobFilter) return status === state.jobFilter;
+          return status !== 'DONE';
+        });
+        rows.push(...visibleJobs.map(renderJobTask));
+        if (!state.jobFilter) rows.push(...doneRuns.slice(0, 6).map(renderRunTask));
+      }
+      els.taskList.innerHTML = rows.join('') || '<div class="empty">当前没有需要处理的任务。</div>';
+      for (const button of els.taskList.querySelectorAll('[data-resume-run]')) {
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          await postJson(`/api/runs/${encodeURIComponent(button.dataset.resumeRun)}/resume`, {});
+          await refreshData();
+          button.disabled = false;
         });
       }
-    }
-
-    async function selectRun(runId, options = {}) {
-      state.selectedRunId = runId;
-      if (!options.quiet) {
-        document.querySelector('#content-files')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      await loadPlatformContent();
-    }
-
-    async function loadPlatformContent() {
-      if (!state.selectedRunId) {
-        els.previewSubtitle.textContent = '选择一个已完成任务后查看。';
-        els.downloadButton.setAttribute('aria-disabled', 'true');
-        els.downloadButton.href = '#';
-        els.contentFiles.innerHTML = '<div class="empty">暂无选中的生成结果。</div>';
-        return;
-      }
-      els.previewSubtitle.textContent = `正在加载 ${state.selectedRunId} 的平台内容...`;
-      els.contentFiles.innerHTML = '<div class="empty">正在读取生成文件。</div>';
-      try {
-        const payload = await getJson(`/api/runs/${encodeURIComponent(state.selectedRunId)}/platforms/${encodeURIComponent(state.selectedPlatform)}`);
-        els.previewSubtitle.textContent = `${payload.platform_label} · ${payload.topic || state.selectedRunId}`;
-        els.downloadButton.href = payload.download_url || `/api/runs/${encodeURIComponent(state.selectedRunId)}/platforms/${encodeURIComponent(state.selectedPlatform)}/download`;
-        els.downloadButton.removeAttribute('aria-disabled');
-        if (!payload.files?.length) {
-          els.contentFiles.innerHTML = '<div class="empty">这个平台还没有可预览的主内容文件。</div>';
-          return;
-        }
-        els.contentFiles.innerHTML = payload.files.map((file) => `
-          <article class="content-file">
-            <header>
-              <strong>${escapeHtml(file.label || file.path)}</strong>
-              <span class="meta mono">${escapeHtml(file.path)} · ${escapeHtml(fileSizeLabel(file.size_bytes))}</span>
-            </header>
-            <pre>${escapeHtml(file.content || '')}${file.truncated ? '\\n\\n（内容过长，已截断显示；下载可获取当前可读主内容。）' : ''}</pre>
-          </article>
-        `).join('');
-      } catch (error) {
-        els.previewSubtitle.textContent = '读取失败';
-        els.contentFiles.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+      for (const link of els.taskList.querySelectorAll('[data-content-url]')) {
+        link.addEventListener('click', (event) => {
+          scheduleContentFallback(link.dataset.contentUrl || link.href);
+        });
       }
     }
 
@@ -1730,8 +1934,7 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
       state.runs = runs.runs || [];
       state.jobs = jobs.jobs || [];
       state.queueHealth = jobs.queue_health || {};
-      renderRuns();
-      renderQueue();
+      renderTasks();
     }
 
     function readFileAsBase64(file) {
@@ -1780,12 +1983,16 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
         showComposer('请先输入选题。');
         return;
       }
+      if (!state.selectedPlatforms.length) {
+        showComposer('至少选择一个平台。');
+        return;
+      }
       els.submitRun.disabled = true;
       showComposer('正在加入生成队列...');
       try {
         const job = await postJson('/api/runs', {
           topic,
-          platforms: state.defaultPlatforms,
+          platforms: state.selectedPlatforms,
           attachments: state.attachments
         });
         showComposer(`已加入队列：${job.job_id}`);
@@ -1802,8 +2009,12 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     els.refreshButton.addEventListener('click', async () => {
       els.refreshButton.disabled = true;
       await refreshData();
-      if (state.selectedRunId) await loadPlatformContent();
       els.refreshButton.disabled = false;
+    });
+
+    els.selectAllPlatforms.addEventListener('click', () => {
+      state.selectedPlatforms = state.platforms.map((platform) => platform.id);
+      renderPlatformPicker();
     });
 
     for (const button of document.querySelectorAll('[data-job-filter]')) {
@@ -1822,6 +2033,294 @@ def render_console_html(runtime: ConsoleRuntime) -> str:
     return html_body.replace("__INITIAL_STATE__", _script_json(initial_state))
 
 
+def render_run_content_html(runtime: ConsoleRuntime, run_id: str) -> str:
+    content = runtime.run_content(run_id)
+    title = str(content.get("topic") or run_id)
+    status = str(content.get("status") or "")
+    platforms = list(content.get("platforms") or [])
+
+    platform_nav = "".join(
+        (
+            f'<a class="chip" href="#platform-{html.escape(str(platform.get("platform") or ""))}">'
+            f'{html.escape(str(platform.get("platform_label") or platform.get("platform") or ""))}</a>'
+        )
+        for platform in platforms
+    )
+    platform_sections = "\n".join(_run_content_platform_section(run_id, platform) for platform in platforms)
+    if not platform_sections:
+        platform_sections = '<section><div class="empty">这个运行记录没有可查看的生成内容。</div></section>'
+
+    html_body = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>生成内容 - __TITLE__</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f5f4;
+      --surface: #ffffff;
+      --surface-soft: #f8faf9;
+      --ink: #17201c;
+      --muted: #65706b;
+      --line: #dbe2df;
+      --line-strong: #b9c5c0;
+      --accent: #14765b;
+      --accent-strong: #0f5d48;
+      --accent-soft: #e6f4ef;
+      --shadow: 0 1px 2px rgba(23, 32, 28, .05);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.55 "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      letter-spacing: 0;
+    }
+    a.button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 7px 12px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 750;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    a.button.secondary {
+      background: #fff;
+      color: var(--accent-strong);
+      border-color: var(--line-strong);
+    }
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--ink);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      font-weight: 900;
+    }
+    h1 { margin: 0; font-size: 20px; line-height: 1.2; }
+    h2 { margin: 0; font-size: 17px; line-height: 1.25; }
+    h3 { margin: 0; font-size: 14px; line-height: 1.3; }
+    .meta { color: var(--muted); font-size: 12px; }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+    main {
+      display: grid;
+      gap: 16px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .chip {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      padding: 3px 10px;
+      background: #fff;
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .content-list {
+      display: grid;
+      gap: 10px;
+    }
+    .content-file {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .content-file-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+    pre {
+      margin: 0;
+      padding: 12px;
+      overflow: visible;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .empty {
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--muted);
+      background: var(--surface-soft);
+      text-align: center;
+    }
+    @media (max-width: 760px) {
+      header { grid-template-columns: 1fr; }
+      main { padding: 12px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .row-actions { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">文</div>
+      <div>
+        <h1>生成内容</h1>
+        <div class="meta">__TITLE_ESCAPED__</div>
+      </div>
+    </div>
+    <div class="row-actions">
+      <span class="status">__STATUS__</span>
+      <a class="button secondary" href="/">返回工作台</a>
+      <a class="button" href="__DOWNLOAD_URL__">下载全部内容</a>
+    </div>
+  </header>
+  <main>
+    <section>
+      <div class="section-head">
+        <div>
+          <h2>完整生成结果</h2>
+          <div class="meta mono">__RUN_ID__</div>
+        </div>
+        <div class="chips">__PLATFORM_NAV__</div>
+      </div>
+    </section>
+    __PLATFORM_SECTIONS__
+  </main>
+</body>
+</html>
+"""
+    replacements = {
+        "__TITLE__": html.escape(title),
+        "__TITLE_ESCAPED__": html.escape(title),
+        "__STATUS__": html.escape(status or "未知"),
+        "__RUN_ID__": html.escape(run_id),
+        "__DOWNLOAD_URL__": html.escape(str(content.get("download_url") or f"/runs/{run_id}/content/download")),
+        "__PLATFORM_NAV__": platform_nav,
+        "__PLATFORM_SECTIONS__": platform_sections,
+    }
+    for marker, value in replacements.items():
+        html_body = html_body.replace(marker, value)
+    return html_body
+
+
+def _run_content_platform_section(run_id: str, platform: dict[str, Any]) -> str:
+    platform_id = str(platform.get("platform") or "")
+    platform_label = str(platform.get("platform_label") or platform_id)
+    files = list(platform.get("files") or [])
+    file_cards = "\n".join(_run_content_file_card(file) for file in files)
+    if not file_cards:
+        file_cards = '<div class="empty">这个平台还没有可查看的主内容文件。</div>'
+    download_url = f"/api/runs/{run_id}/platforms/{platform_id}/download"
+    return f"""
+    <section id="platform-{html.escape(platform_id)}">
+      <div class="section-head">
+        <div>
+          <h2>{html.escape(platform_label)}</h2>
+          <div class="meta">{len(files)} 个主内容文件</div>
+        </div>
+        <a class="button secondary" href="{html.escape(download_url)}">下载本平台</a>
+      </div>
+      <div class="content-list">
+        {file_cards}
+      </div>
+    </section>
+"""
+
+
+def _run_content_file_card(file: dict[str, Any]) -> str:
+    label = str(file.get("label") or file.get("path") or "")
+    path = str(file.get("path") or "")
+    size = _bytes_label(int(file.get("size_bytes") or 0))
+    content = str(file.get("content") or "")
+    return f"""
+        <article class="content-file">
+          <div class="content-file-head">
+            <strong>{html.escape(label)}</strong>
+            <span class="meta mono">{html.escape(path)} · {html.escape(size)}</span>
+          </div>
+          <pre>{html.escape(content)}</pre>
+        </article>
+"""
+
+
 def render_admin_console_html(runtime: ConsoleRuntime) -> str:
     health = runtime.health()
     setup = runtime.setup_check()
@@ -1835,6 +2334,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
         "setup": setup,
         "local_runtime": local_runtime,
         "env": env_status,
+        "api_keys": runtime.api_key_status(),
         "runs": runtime.list_runs(limit=12)["runs"],
         "jobs": job_index["jobs"][:30],
         "queue_health": job_index["queue_health"],
@@ -1871,17 +2371,13 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       --amber-soft: #fff2d6;
       --red: #a3372f;
       --red-soft: #fdecea;
-      --shadow: 0 14px 32px rgba(21, 31, 27, .08);
+      --shadow: 0 1px 2px rgba(21, 31, 27, .05);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-width: 320px;
-      background:
-        linear-gradient(90deg, rgba(17, 94, 75, .055) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(17, 94, 75, .045) 1px, transparent 1px),
-        var(--bg);
-      background-size: 42px 42px;
+      background: var(--bg);
       color: var(--ink);
       font: 14px/1.5 "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
       letter-spacing: 0;
@@ -1910,6 +2406,20 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
     }
     button.danger { border-color: var(--red); background: var(--red); }
     button:disabled { opacity: .58; cursor: wait; }
+    input[type="password"] {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 7px 9px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+    input[type="password"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(17, 94, 75, .13);
+    }
     header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -1932,12 +2442,11 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
     .brand-mark {
       width: 34px;
       height: 34px;
-      border: 2px solid var(--ink);
+      border: 1px solid var(--ink);
       border-radius: 7px;
       display: grid;
       place-items: center;
       background: #fff;
-      box-shadow: 4px 4px 0 var(--accent);
       font-weight: 900;
     }
     h1 { margin: 0; font-size: 20px; line-height: 1.2; }
@@ -1956,23 +2465,42 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       padding: 16px;
     }
     .overview-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
     }
     .metric {
       min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
+      padding: 8px 10px;
       background: var(--surface);
-      box-shadow: var(--shadow);
+    }
+    .overview-grid .metric {
+      display: inline-flex;
+      gap: 6px;
+      align-items: baseline;
+      border: 0;
+      border-radius: 6px;
+      padding: 3px 7px;
+      background: var(--surface-soft);
     }
     .metric strong {
       display: block;
       font-size: 24px;
       line-height: 1;
       margin-bottom: 5px;
+    }
+    .overview-grid .metric strong {
+      display: inline;
+      font-size: 14px;
+      margin: 0;
     }
     .dashboard-grid {
       display: grid;
@@ -2026,13 +2554,17 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       color: var(--red);
     }
     .stack-list, .job-list, .run-list, .backup-list, .env-list { display: grid; gap: 8px; }
-    .info-row, .job-row, .run-row, .backup-row, .env-row {
+    .info-row, .job-row, .run-row, .backup-row, .env-row, .api-key-row {
       display: grid;
       gap: 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 10px;
       background: #fff;
+    }
+    .api-key-row {
+      grid-template-columns: minmax(126px, 170px) minmax(0, 1fr) auto;
+      align-items: center;
     }
     .job-row {
       grid-template-columns: minmax(0, 1.4fr) auto;
@@ -2081,6 +2613,27 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       color: var(--accent-strong);
       font-weight: 760;
     }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    summary {
+      cursor: pointer;
+      padding: 10px 11px;
+      font-weight: 800;
+      background: var(--surface-soft);
+    }
+    .details-body {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+    .details-body .info-row,
+    .details-body .command {
+      background: var(--surface);
+    }
     .empty {
       border: 1px dashed var(--line-strong);
       border-radius: 8px;
@@ -2092,12 +2645,11 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
     @media (max-width: 1100px) {
       header { grid-template-columns: 1fr; }
       .dashboard-grid { grid-template-columns: 1fr; }
-      .overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
       main { padding: 12px; }
-      .overview-grid, .split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .job-row, .command { grid-template-columns: 1fr; }
+      .split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .job-row, .command, .api-key-row { grid-template-columns: 1fr; }
       .row-actions { justify-content: flex-start; }
     }
   </style>
@@ -2128,7 +2680,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           <div class="section-head">
             <div>
               <h2>本机状态</h2>
-              <div class="meta">Local Runtime：Python + make commands 是主路径，Docker optional。</div>
+              <div class="meta">只突出运行路径和阻塞项。</div>
             </div>
             <span id="local-runtime-pill" class="status">加载中</span>
           </div>
@@ -2140,7 +2692,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           <div class="section-head">
             <div>
               <h2>配置检查</h2>
-              <div class="meta">Setup Check 会检查 workflow、五平台集合、目录、备份、durable job queue 和 secret presence。</div>
+              <div class="meta">默认显示提醒和异常，正常项放入详情。</div>
             </div>
             <span id="setup-pill" class="status">加载中</span>
           </div>
@@ -2151,8 +2703,25 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
         <section>
           <div class="section-head">
             <div>
+              <h2>API Key 配置</h2>
+              <div class="meta">每个平台单独保存，真实 key 不回显。</div>
+            </div>
+            <span id="api-key-pill" class="status">加载中</span>
+          </div>
+          <form id="api-key-form" class="stack-list">
+            <div id="api-key-list" class="stack-list"></div>
+            <div class="row-actions">
+              <button type="submit" id="save-api-keys">保存并刷新配置</button>
+            </div>
+          </form>
+          <div id="api-key-toast" class="toast"></div>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <div>
               <h2>环境变量</h2>
-              <div class="meta">Secret 只显示 present/missing，不显示真实值。</div>
+              <div class="meta">Secret 只显示状态，不显示真实值。</div>
             </div>
           </div>
           <div id="env-list" class="env-list"></div>
@@ -2223,6 +2792,8 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       setup: initialState.setup || {},
       localRuntime: initialState.local_runtime || {},
       env: initialState.env || {},
+      apiKeys: initialState.api_keys || {},
+      apiKeyDrafts: {},
       runs: initialState.runs || [],
       jobs: initialState.jobs || [],
       queueHealth: initialState.queue_health || {},
@@ -2282,6 +2853,11 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       setupPill: document.querySelector('#setup-pill'),
       setupChecks: document.querySelector('#setup-checks'),
       setupCommands: document.querySelector('#setup-commands'),
+      apiKeyPill: document.querySelector('#api-key-pill'),
+      apiKeyForm: document.querySelector('#api-key-form'),
+      apiKeyList: document.querySelector('#api-key-list'),
+      apiKeyToast: document.querySelector('#api-key-toast'),
+      saveApiKeys: document.querySelector('#save-api-keys'),
       queueMaintenanceSummary: document.querySelector('#queue-maintenance-summary'),
       jobsList: document.querySelector('#jobs-list'),
       backupsList: document.querySelector('#backups-list'),
@@ -2341,6 +2917,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       renderOverview();
       renderLocalRuntime();
       renderSetup();
+      renderApiKeys();
       renderQueueMaintenance();
       renderJobs();
       renderBackups();
@@ -2357,13 +2934,11 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
     function renderOverview() {
       const counts = state.queueHealth.counts || {};
       const items = [
-        ['系统状态', labels[state.health.status] || state.health.status || '未知'],
-        ['本机运行', labels[state.localRuntime.status] || state.localRuntime.status || '未知'],
-        ['排队中', counts.QUEUED || 0],
-        ['生成中', counts.RUNNING || 0],
-        ['已完成', counts.DONE || 0],
+        ['系统', labels[state.health.status] || state.health.status || '未知'],
+        ['本机', labels[state.localRuntime.status] || state.localRuntime.status || '未知'],
+        ['待处理', `${counts.QUEUED || 0}/${counts.RUNNING || 0}`],
         ['失败', counts.FAILED || 0],
-        ['已取消', counts.CANCELED || 0]
+        ['完成', counts.DONE || 0]
       ];
       els.overviewMetrics.innerHTML = items.map(([label, value]) => `
         <div class="metric">
@@ -2394,7 +2969,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           <div class="meta mono">队列数据库：${escapeHtml(local.job_db_path || '')}</div>
         </div>
       `;
-      els.localRuntimeCommands.innerHTML = (local.commands || []).map((command) => `
+      const commandsHtml = (local.commands || []).map((command) => `
         <div class="command">
           <div>
             <strong>${escapeHtml(commandLabel(command.label))}</strong>
@@ -2403,13 +2978,21 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           <div class="mono">${escapeHtml(command.command)}</div>
         </div>
       `).join('');
+      els.localRuntimeCommands.innerHTML = `
+        <details>
+          <summary>运行命令详情（${(local.commands || []).length}）</summary>
+          <div class="details-body">${commandsHtml || '<div class="empty">暂无运行命令。</div>'}</div>
+        </details>
+      `;
     }
 
     function renderSetup() {
       const setup = state.setup || {};
       els.setupPill.outerHTML = statusPill(setup.status || 'warn').replace('<span', '<span id="setup-pill"');
       els.setupPill = document.querySelector('#setup-pill');
-      els.setupChecks.innerHTML = (setup.checks || []).map((check) => `
+      const checks = setup.checks || [];
+      const visibleChecks = checks.filter((check) => String(check.status || '').toLowerCase() !== 'ok');
+      const checkCard = (check) => `
         <div class="info-row">
           <div class="row-title">
             <strong>${escapeHtml(check.label || check.id)}</strong>
@@ -2419,8 +3002,10 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           ${check.path ? `<div class="meta mono">${escapeHtml(check.path)}</div>` : ''}
           ${check.command ? `<div class="meta mono">${escapeHtml(check.command)}</div>` : ''}
         </div>
-      `).join('');
-      els.setupCommands.innerHTML = (setup.commands || []).map((command) => `
+      `;
+      els.setupChecks.innerHTML = visibleChecks.map(checkCard).join('') || '<div class="empty">没有需要处理的配置项。</div>';
+      const commands = setup.commands || [];
+      const commandsHtml = commands.map((command) => `
         <div class="command">
           <div>
             <strong>${escapeHtml(commandLabel(command.label))}</strong>
@@ -2429,6 +3014,64 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           <div class="mono">${escapeHtml(command.command)}</div>
         </div>
       `).join('');
+      els.setupCommands.innerHTML = `
+        <details>
+          <summary>全部检查和验收命令（${checks.length + commands.length}）</summary>
+          <div class="details-body">
+            ${checks.map(checkCard).join('')}
+            ${commandsHtml}
+          </div>
+        </details>
+      `;
+    }
+
+    function renderApiKeys() {
+      const apiKeys = state.apiKeys || {};
+      const targets = apiKeys.targets || [];
+      const configuredCount = apiKeys.configured_count || 0;
+      const targetCount = apiKeys.target_count || targets.length;
+      const status = configuredCount ? 'present' : 'missing';
+      const focusedInput = document.activeElement && els.apiKeyList.contains(document.activeElement)
+        ? document.activeElement
+        : null;
+      const focusedName = focusedInput?.name || null;
+      const focusedStart = focusedInput?.selectionStart ?? null;
+      const focusedEnd = focusedInput?.selectionEnd ?? null;
+      els.apiKeyPill.outerHTML = statusPill(status).replace('<span', '<span id="api-key-pill"');
+      els.apiKeyPill = document.querySelector('#api-key-pill');
+      els.apiKeyList.innerHTML = targets.map((target) => {
+        const draft = state.apiKeyDrafts[target.id] || '';
+        const placeholder = target.configured ? '已配置，留空保持不变' : '输入 API Key';
+        const source = target.source === 'console' ? '控制台配置' : target.source === 'environment' ? '环境变量' : '未配置';
+        return `
+          <div class="api-key-row">
+            <div>
+              <div class="row-title">
+                <strong>${escapeHtml(target.label)}</strong>
+                ${statusPill(target.configured ? 'present' : 'missing')}
+              </div>
+              <div class="meta mono">${escapeHtml(target.env_key || '')}</div>
+              <div class="meta">${escapeHtml(source)}</div>
+            </div>
+            <input type="password" autocomplete="off" name="${escapeHtml(target.id)}" value="${escapeHtml(draft)}" placeholder="${escapeHtml(placeholder)}">
+            <div class="meta">写入后立即刷新</div>
+          </div>
+        `;
+      }).join('') || '<div class="empty">暂无可配置的平台 API Key。</div>';
+      for (const input of els.apiKeyList.querySelectorAll('input[name]')) {
+        input.addEventListener('input', () => {
+          state.apiKeyDrafts[input.name] = input.value;
+        });
+        if (focusedName && input.name === focusedName) {
+          input.focus();
+          if (focusedStart !== null && focusedEnd !== null) {
+            try {
+              input.setSelectionRange(focusedStart, focusedEnd);
+            } catch (_error) {}
+          }
+        }
+      }
+      els.apiKeyToast.textContent = apiKeys.secret_policy || `已配置 ${configuredCount}/${targetCount} 个平台 API Key。`;
     }
 
     function renderQueueMaintenance() {
@@ -2547,7 +3190,8 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       const secrets = (state.env.secrets || []).map((item) => ({ ...item, secret: true }));
       const runtime = (state.env.runtime || []).map((item) => ({ ...item, secret: false }));
       const rows = [...secrets, ...runtime];
-      els.envList.innerHTML = rows.map((item) => `
+      const envDetailsWasOpen = els.envList.querySelector('[data-env-details="all"]')?.open || false;
+      const envRow = (item) => `
         <div class="env-row">
           <div class="row-title">
             <strong class="mono">${escapeHtml(item.name)}</strong>
@@ -2555,7 +3199,18 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
           </div>
           <div class="meta">${item.secret ? 'secret 值已隐藏' : escapeHtml(item.value || '')}</div>
         </div>
-      `).join('') || '<div class="empty">暂无环境变量状态。</div>';
+      `;
+      const priorityRows = [
+        ...secrets.filter((item) => !item.present),
+        ...runtime.filter((item) => item.present)
+      ];
+      els.envList.innerHTML = `
+        ${priorityRows.map(envRow).join('') || '<div class="empty">没有需要优先处理的环境变量。</div>'}
+        <details data-env-details="all" ${envDetailsWasOpen ? 'open' : ''}>
+          <summary>全部环境变量状态（${rows.length}）</summary>
+          <div class="details-body">${rows.map(envRow).join('') || '<div class="empty">暂无环境变量状态。</div>'}</div>
+        </details>
+      `;
     }
 
     async function getJson(path) {
@@ -2578,11 +3233,12 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
 
     async function refreshAdminData() {
       const jobsPath = state.jobFilter ? `/api/jobs?status=${encodeURIComponent(state.jobFilter)}` : '/api/jobs';
-      const [health, setup, localRuntime, env, runs, jobs, backups] = await Promise.all([
+      const [health, setup, localRuntime, env, apiKeys, runs, jobs, backups] = await Promise.all([
         getJson('/healthz'),
         getJson('/api/setup-check'),
         getJson('/api/local-runtime'),
         getJson('/api/env'),
+        getJson('/api/api-keys'),
         getJson('/api/runs?limit=12'),
         getJson(jobsPath),
         getJson('/api/backups')
@@ -2591,6 +3247,7 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
       state.setup = setup;
       state.localRuntime = localRuntime;
       state.env = env;
+      state.apiKeys = apiKeys;
       state.runs = runs.runs || [];
       state.jobs = jobs.jobs || [];
       state.queueHealth = jobs.queue_health || {};
@@ -2607,6 +3264,36 @@ def render_admin_console_html(runtime: ConsoleRuntime) -> str:
         showOps(error.message);
       } finally {
         els.refresh.disabled = false;
+      }
+    });
+
+    els.apiKeyForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const keys = {};
+      for (const input of els.apiKeyList.querySelectorAll('input[name]')) {
+        const value = String(input.value || '').trim();
+        state.apiKeyDrafts[input.name] = input.value;
+        if (value) keys[input.name] = value;
+      }
+      if (!Object.keys(keys).length) {
+        els.apiKeyToast.textContent = '没有新的 API Key 需要保存；留空会保持原配置。';
+        return;
+      }
+
+      els.saveApiKeys.disabled = true;
+      try {
+        const payload = await postJson('/api/api-keys', { keys });
+        state.apiKeys = payload.api_keys || state.apiKeys;
+        state.env = payload.env || state.env;
+        state.apiKeyDrafts = {};
+        const updated = payload.updated_targets || [];
+        renderApiKeys();
+        renderEnv();
+        els.apiKeyToast.textContent = `已保存 ${updated.length} 个平台 API Key，并刷新运行环境。`;
+      } catch (error) {
+        els.apiKeyToast.textContent = error.message;
+      } finally {
+        els.saveApiKeys.disabled = false;
       }
     });
 
@@ -3239,6 +3926,7 @@ def _run_card(run_dir: Path) -> dict[str, Any]:
     return {
         "run_id": workflow_run.get("run_id") or run_dir.name,
         "topic": workflow_run.get("topic"),
+        "platforms": workflow_run.get("platforms", []),
         "status": workflow_run.get("status"),
         "progress_percent": summary.get("progress_percent"),
         "completed_steps": summary.get("completed_steps"),
@@ -3398,29 +4086,32 @@ def _progress_label(run: dict[str, Any]) -> str:
     return f"{run.get('completed_steps')}/{run.get('total_steps')}{suffix}"
 
 
+def _bytes_label(bytes_value: int) -> str:
+    if bytes_value >= 1024 * 1024:
+        return f"{bytes_value / 1024 / 1024:.1f} MB"
+    if bytes_value >= 1024:
+        return f"{bytes_value / 1024:.1f} KB"
+    return f"{bytes_value} B"
+
+
 def _platforms_from_payload(payload: dict[str, Any], default_platforms: list[str]) -> list[str]:
     raw = payload.get("platforms")
     if raw is None:
-        return default_platforms
-    if isinstance(raw, str):
+        values = list(default_platforms)
+    elif isinstance(raw, str):
         values = [item.strip() for item in raw.split(",") if item.strip()]
     elif isinstance(raw, list):
         values = [str(item).strip() for item in raw if str(item).strip()]
     else:
         raise ValueError("platforms must be a list or comma-separated string")
+
+    selected = list(dict.fromkeys(values))
+    if not selected:
+        raise ValueError("at least one platform must be selected")
     allowed = set(DEFAULT_PLATFORMS)
-    unknown = [item for item in values if item not in allowed]
+    unknown = [item for item in selected if item not in allowed]
     if unknown:
         raise ValueError(f"unknown platform(s): {', '.join(unknown)}")
-    selected = values or default_platforms
-    required_platforms = list(DEFAULT_PLATFORMS)
-    missing = [item for item in required_platforms if item not in selected]
-    extra = [item for item in selected if item not in required_platforms]
-    if missing or extra:
-        raise ValueError(
-            "Phase 5 console run requires the full workflow platform set "
-            f"to preserve the Phase 4 delivery contract; missing={missing}, extra={extra}"
-        )
     return selected
 
 
@@ -3483,7 +4174,7 @@ def _safe_run_file(run_dir: Path, relative_path: str) -> Path | None:
     return target
 
 
-def _content_file_card(run_dir: Path, path: Path) -> dict[str, Any]:
+def _content_file_card(run_dir: Path, path: Path, *, content_limit: int | None = 300000) -> dict[str, Any]:
     relative = path.relative_to(run_dir).as_posix()
     suffix = path.suffix.lower()
     try:
@@ -3495,13 +4186,14 @@ def _content_file_card(run_dir: Path, path: Path) -> dict[str, Any]:
             text = json.dumps(json.loads(text), ensure_ascii=False, indent=2)
         except json.JSONDecodeError:
             pass
+    content = text if content_limit is None else text[:content_limit]
     return {
         "path": relative,
         "label": _content_file_label(relative),
         "kind": "json" if suffix == ".json" else "text",
         "size_bytes": path.stat().st_size,
-        "content": text[:300000],
-        "truncated": len(text) > 300000,
+        "content": content,
+        "truncated": content_limit is not None and len(text) > content_limit,
     }
 
 

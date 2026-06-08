@@ -24,6 +24,7 @@ from .workflow import Workflow, WorkflowStep, load_workflow, workflow_from_dict
 
 
 DEFAULT_PLATFORMS = ["wechat", "xiaohongshu", "douyin", "shipinhao", "bilibili"]
+VIDEO_PLATFORMS = {"douyin", "shipinhao", "bilibili"}
 DEFAULT_OUTPUT_ROOT = Path("outputs/runs")
 
 
@@ -295,7 +296,15 @@ class WorkflowExecutor:
             self.workflow_status = "DONE"
 
     def _should_skip(self, step: WorkflowStep) -> bool:
-        return bool(step.platform and step.platform not in self.context.platforms)
+        return self._skip_reason(step) is not None
+
+    def _skip_reason(self, step: WorkflowStep) -> str | None:
+        if step.platform and step.platform not in self.context.platforms:
+            return f"platform {step.platform} not selected"
+        required = step.requires_any_platform or []
+        if required and not any(platform in self.context.platforms for platform in required):
+            return f"requires one of {', '.join(required)}"
+        return None
 
     def _deps_satisfied(self, step: WorkflowStep) -> bool:
         return all(self._step_is_complete(self.steps_by_id[dep]) for dep in step.depends_on)
@@ -311,7 +320,21 @@ class WorkflowExecutor:
             return True
         if task_run["status"] != "PASSED":
             return False
-        return all((self.context.run_dir / output_path).exists() for output_path in step.outputs)
+        return all((self.context.run_dir / output_path).exists() for output_path in self._expected_outputs(step))
+
+    def _expected_outputs(self, step: WorkflowStep) -> list[str]:
+        return [output_path for output_path in step.outputs if self._output_applies(output_path)]
+
+    def _output_applies(self, output_path: str) -> bool:
+        for platform in DEFAULT_PLATFORMS:
+            platform_paths = (
+                f"{platform}/",
+                f"assets/{platform}/",
+                f"artifact_store/downloads/{platform}_project_bundle.zip",
+            )
+            if output_path.startswith(platform_paths):
+                return platform in self.context.platforms
+        return True
 
     def _first_incomplete_step_id(self) -> str | None:
         for step in self.context.workflow.steps:
@@ -322,6 +345,7 @@ class WorkflowExecutor:
     def _record_skipped(self, step: WorkflowStep) -> None:
         now = _utc_now_iso()
         task_spec = self._task_spec(step)
+        reason = self._skip_reason(step) or "step is not applicable"
         task_run = {
             "task_id": task_spec["task_id"],
             "step_id": step.id,
@@ -332,13 +356,13 @@ class WorkflowExecutor:
             "artifact_paths": [],
             "log_path": None,
             "execution_mode": "skipped",
-            "reason": f"platform {step.platform} not selected",
+            "reason": reason,
         }
         record = {
             "task_spec": task_spec,
             "task_run": task_run,
             "agent_result": {"metadata": {"execution_mode": "skipped", "agent_interface": "n/a"}, "notes": []},
-            "note": f"platform {step.platform} not selected",
+            "note": reason,
         }
         self._persist_task_attempt(step, task_spec, task_run, record, attempt=0)
         self.task_runs_by_step[step.id] = task_run
@@ -550,7 +574,8 @@ class WorkflowExecutor:
         )
 
     def _validate_agent_outputs(self, step: WorkflowStep, result: AgentResult) -> None:
-        missing = [output_path for output_path in step.outputs if output_path not in result.outputs]
+        expected_outputs = self._expected_outputs(step)
+        missing = [output_path for output_path in expected_outputs if output_path not in result.outputs]
         extra = [output_path for output_path in result.outputs if output_path not in step.outputs]
         if missing or extra:
             raise RuntimeError(
@@ -571,7 +596,7 @@ class WorkflowExecutor:
                 "depends_on": step.depends_on,
                 "workflow_path": str(self.context.workflow_path),
             },
-            "outputs": step.outputs,
+            "outputs": self._expected_outputs(step),
             "acceptance_criteria": [
                 "All declared output files exist.",
                 "No publishing, upload, login, or cookie refresh action is performed.",
@@ -583,6 +608,7 @@ class WorkflowExecutor:
             "metadata": {
                 "step_id": step.id,
                 "platform": step.platform,
+                "requires_any_platform": step.requires_any_platform or [],
                 "parallel_group": step.parallel_group,
                 "execution_mode": "agent" if supports_agent(step.agent) else "template",
             },
@@ -612,7 +638,7 @@ class WorkflowExecutor:
             "execution_mode": execution_mode or task_spec["metadata"]["execution_mode"],
         }
         if status == "SKIPPED":
-            task_run["reason"] = f"platform {step.platform} not selected"
+            task_run["reason"] = self._skip_reason(step) or "step is not applicable"
         return task_run
 
     def _task_log_payload(
@@ -959,6 +985,8 @@ class WorkflowExecutor:
     def _write_final_outputs(self) -> None:
         final_dir = self.context.run_dir / "final"
         final_dir.mkdir(parents=True, exist_ok=True)
+        video_platforms = [platform for platform in self.context.platforms if platform in VIDEO_PLATFORMS]
+        has_video_platforms = bool(video_platforms)
 
         artifact_manifest = {
             "run_id": self.context.run_id,
@@ -1004,57 +1032,66 @@ class WorkflowExecutor:
                 for item in self.artifacts_by_path.values()
                 if item["platform"] in self.context.platforms
             ],
-            "video_production_package": "final/video_production_package.json",
-            "materialization_manifest": "final/materialization_manifest.json",
-            "licensed_media_ingest_manifest": "final/licensed_media_ingest_manifest.json",
-            "licensed_media_proxy_manifest": "final/licensed_media_proxy_manifest.json",
-            "editor_replacement_instruction_manifest": "final/editor_replacement_instruction_manifest.json",
-            "editor_replacement_execution_manifest": "final/editor_replacement_execution_manifest.json",
-            "editor_project_mutation_manifest": "final/editor_project_mutation_manifest.json",
-            "editor_software_import_manifest": "final/editor_software_import_manifest.json",
-            "editor_software_real_runner_manifest": "final/editor_software_real_runner_manifest.json",
-            "editor_software_run_evidence_manifest": "final/editor_software_run_evidence_manifest.json",
-            "edit_project_manifest": "final/edit_project_manifest.json",
-            "export_project_manifest": "final/export_project_manifest.json",
-            "project_bundle_manifest": "final/project_bundle_manifest.json",
-            "delivery_index": "final/delivery_index.json",
-            "delivery_readme": "final/delivery_readme.md",
-            "artifact_store_manifest": "artifact_store/artifact_store_manifest.json",
-            "artifact_store_readme": "artifact_store/README.md",
-            "artifact_store_download_index": "artifact_store/download_index.md",
-            "artifact_store_checksums": "artifact_store/checksums.sha256",
-            "external_mirror_plan": "artifact_store/external_mirror_plan.json",
-            "external_mirror_sync_command_preview": "artifact_store/sync_command_preview.md",
-            "external_mirror_approval_request": "artifact_store/human_distribution_approval_request.md",
-            "external_mirror_readme": "artifact_store/external_mirror_readme.md",
             "review_required": True,
         }
+        if has_video_platforms:
+            content_package.update(
+                {
+                    "video_production_package": "final/video_production_package.json",
+                    "materialization_manifest": "final/materialization_manifest.json",
+                    "licensed_media_ingest_manifest": "final/licensed_media_ingest_manifest.json",
+                    "licensed_media_proxy_manifest": "final/licensed_media_proxy_manifest.json",
+                    "editor_replacement_instruction_manifest": "final/editor_replacement_instruction_manifest.json",
+                    "editor_replacement_execution_manifest": "final/editor_replacement_execution_manifest.json",
+                    "editor_project_mutation_manifest": "final/editor_project_mutation_manifest.json",
+                    "editor_software_import_manifest": "final/editor_software_import_manifest.json",
+                    "editor_software_real_runner_manifest": "final/editor_software_real_runner_manifest.json",
+                    "editor_software_run_evidence_manifest": "final/editor_software_run_evidence_manifest.json",
+                    "edit_project_manifest": "final/edit_project_manifest.json",
+                    "export_project_manifest": "final/export_project_manifest.json",
+                    "project_bundle_manifest": "final/project_bundle_manifest.json",
+                    "delivery_index": "final/delivery_index.json",
+                    "delivery_readme": "final/delivery_readme.md",
+                    "artifact_store_manifest": "artifact_store/artifact_store_manifest.json",
+                    "artifact_store_readme": "artifact_store/README.md",
+                    "artifact_store_download_index": "artifact_store/download_index.md",
+                    "artifact_store_checksums": "artifact_store/checksums.sha256",
+                    "external_mirror_plan": "artifact_store/external_mirror_plan.json",
+                    "external_mirror_sync_command_preview": "artifact_store/sync_command_preview.md",
+                    "external_mirror_approval_request": "artifact_store/human_distribution_approval_request.md",
+                    "external_mirror_readme": "artifact_store/external_mirror_readme.md",
+                }
+            )
         _write_json(final_dir / "content_package_manifest.json", content_package)
-        _write_json(final_dir / "video_production_package.json", video_production_package)
-        _write_json(final_dir / "materialization_manifest.json", materialization_manifest)
-        _write_json(final_dir / "licensed_media_ingest_manifest.json", licensed_media_ingest_manifest)
-        _write_json(final_dir / "licensed_media_proxy_manifest.json", licensed_media_proxy_manifest)
-        _write_json(final_dir / "editor_replacement_instruction_manifest.json", editor_replacement_instruction_manifest)
-        _write_json(final_dir / "editor_replacement_execution_manifest.json", editor_replacement_execution_manifest)
-        _write_json(final_dir / "editor_project_mutation_manifest.json", editor_project_mutation_manifest)
-        _write_json(final_dir / "editor_software_import_manifest.json", editor_software_import_manifest)
-        _write_json(final_dir / "editor_software_real_runner_manifest.json", editor_software_real_runner_manifest)
-        _write_json(final_dir / "editor_software_run_evidence_manifest.json", editor_software_run_evidence_manifest)
-        _write_json(final_dir / "edit_project_manifest.json", edit_project_manifest)
-        _write_json(final_dir / "export_project_manifest.json", export_project_manifest)
-        _write_json(final_dir / "project_bundle_manifest.json", project_bundle_manifest)
+        if has_video_platforms:
+            _write_json(final_dir / "video_production_package.json", video_production_package)
+            _write_json(final_dir / "materialization_manifest.json", materialization_manifest)
+            _write_json(final_dir / "licensed_media_ingest_manifest.json", licensed_media_ingest_manifest)
+            _write_json(final_dir / "licensed_media_proxy_manifest.json", licensed_media_proxy_manifest)
+            _write_json(final_dir / "editor_replacement_instruction_manifest.json", editor_replacement_instruction_manifest)
+            _write_json(final_dir / "editor_replacement_execution_manifest.json", editor_replacement_execution_manifest)
+            _write_json(final_dir / "editor_project_mutation_manifest.json", editor_project_mutation_manifest)
+            _write_json(final_dir / "editor_software_import_manifest.json", editor_software_import_manifest)
+            _write_json(final_dir / "editor_software_real_runner_manifest.json", editor_software_real_runner_manifest)
+            _write_json(final_dir / "editor_software_run_evidence_manifest.json", editor_software_run_evidence_manifest)
+            _write_json(final_dir / "edit_project_manifest.json", edit_project_manifest)
+            _write_json(final_dir / "export_project_manifest.json", export_project_manifest)
+            _write_json(final_dir / "project_bundle_manifest.json", project_bundle_manifest)
 
         execution_mode = self._execution_mode_summary()
-        review_report = "\n".join(
-            [
-                "# Final Review Report",
-                "",
-                f"- Run ID: {self.context.run_id}",
-                f"- Topic: {self.context.topic}",
-                f"- Platforms: {', '.join(self.context.platforms)}",
-                "- Status: DONE",
-                f"- Execution mode: {execution_mode}",
-                "- Publishing: not performed",
+        review_lines = [
+            "# Final Review Report",
+            "",
+            f"- Run ID: {self.context.run_id}",
+            f"- Topic: {self.context.topic}",
+            f"- Platforms: {', '.join(self.context.platforms)}",
+            "- Status: DONE",
+            f"- Execution mode: {execution_mode}",
+            "- Publishing: not performed",
+        ]
+        if has_video_platforms:
+            review_lines.extend(
+                [
                 "- Video production package: final/video_production_package.json",
                 "- Materialization manifest: final/materialization_manifest.json",
                 "- Licensed media ingest manifest: final/licensed_media_ingest_manifest.json",
@@ -1073,12 +1110,18 @@ class WorkflowExecutor:
                 "- External mirror plan: artifact_store/external_mirror_plan.json",
                 "",
                 "Phase 4 upgrades the run from text drafts to a video production package with asset plan, cover prompts, generated covers, storyboard keyframe previews, local B-roll reference materials, licensed-media review handoffs, proxy replacement suggestions, editor replacement import templates with a human confirmation gate, editor execution adapter preflight plans blocked pending explicit approval, mutation sandbox patched project copies blocked pending explicit approval, editor software import executor isolation plans blocked pending explicit approval, real-runner sandbox launch packages blocked pending explicit approval, post-launch evidence ingest packages blocked pending human real-run result, timed subtitles, draft voiceover audio, edit timelines, shot lists, B-roll lists, export manifest, project bundles, a local delivery index, a local artifact store for downloadable handoff files, and a plan-only external mirror handoff.",
-            ]
-        )
+                ]
+            )
+        else:
+            review_lines.extend(
+                [
+                    "",
+                    "The run selected no video platforms, so video production, bundle, delivery index, artifact store, and external mirror steps were skipped.",
+                ]
+            )
+        review_report = "\n".join(review_lines)
         (final_dir / "review_report.md").write_text(review_report + "\n", encoding="utf-8")
-        self.final_artifact_paths = [
-            "artifact_manifest.json",
-            "final/content_package_manifest.json",
+        video_final_artifact_paths = [
             "final/video_production_package.json",
             "final/materialization_manifest.json",
             "final/licensed_media_ingest_manifest.json",
@@ -1092,11 +1135,16 @@ class WorkflowExecutor:
             "final/edit_project_manifest.json",
             "final/export_project_manifest.json",
             "final/project_bundle_manifest.json",
+        ]
+        self.final_artifact_paths = [
+            "artifact_manifest.json",
+            "final/content_package_manifest.json",
+            *(video_final_artifact_paths if has_video_platforms else []),
             "final/review_report.md",
         ]
 
     def _build_video_production_package(self) -> dict[str, Any]:
-        video_platforms = [platform for platform in self.context.platforms if platform in {"douyin", "shipinhao", "bilibili"}]
+        video_platforms = [platform for platform in self.context.platforms if platform in VIDEO_PLATFORMS]
         asset_plan = _read_json_if_exists(self.context.run_dir / "asset_plan.json")
         asset_tasks = _read_json_if_exists(self.context.run_dir / "assets/asset_generation_tasks.json")
         media_asset_manifest = _read_json_if_exists(self.context.run_dir / "assets/media_asset_manifest.json")

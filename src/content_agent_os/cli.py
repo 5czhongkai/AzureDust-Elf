@@ -10,6 +10,37 @@ from .runner import resume_workflow, run_workflow
 from .supervision import generate_supervision_outputs
 
 
+RUN_OUTPUTS = [
+    ("Workflow state", "workflow_run.json"),
+    ("Run supervision", "monitor/supervision_report.md"),
+    ("Failure dashboard", "monitor/failure_dashboard.html"),
+    ("Content package", "final/content_package_manifest.json"),
+    ("Video production package", "final/video_production_package.json"),
+    ("Materialization manifest", "final/materialization_manifest.json"),
+    ("Licensed media ingest manifest", "final/licensed_media_ingest_manifest.json"),
+    ("Licensed media proxy manifest", "final/licensed_media_proxy_manifest.json"),
+    ("Editor replacement instruction manifest", "final/editor_replacement_instruction_manifest.json"),
+    ("Editor replacement execution manifest", "final/editor_replacement_execution_manifest.json"),
+    ("Editor project mutation manifest", "final/editor_project_mutation_manifest.json"),
+    ("Editor software import manifest", "final/editor_software_import_manifest.json"),
+    ("Editor software real runner manifest", "final/editor_software_real_runner_manifest.json"),
+    ("Editor software run evidence manifest", "final/editor_software_run_evidence_manifest.json"),
+    ("Edit project manifest", "final/edit_project_manifest.json"),
+    ("Export project manifest", "final/export_project_manifest.json"),
+    ("Project bundle manifest", "final/project_bundle_manifest.json"),
+    ("Delivery index", "final/delivery_index.json"),
+    ("Artifact store", "artifact_store/artifact_store_manifest.json"),
+    ("External mirror plan", "artifact_store/external_mirror_plan.json"),
+]
+
+
+def _print_existing_run_outputs(run_dir: Path) -> None:
+    for label, relative in RUN_OUTPUTS:
+        path = run_dir / relative
+        if path.exists():
+            print(f"{label}: {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Content Agent OS workflows.")
     parser.add_argument("--workflow", default="workflows/one_topic_multi_platform.yaml", help="Workflow definition path.")
@@ -63,26 +94,7 @@ def main() -> int:
             raise SystemExit("--topic is required for run mode")
         run_dir = run_workflow(workflow_path=workflow_path, topic=args.topic, platforms=platforms, output_root=output_root)
         print(f"Created workflow run: {run_dir}")
-        print(f"Workflow state: {run_dir / 'workflow_run.json'}")
-        print(f"Run supervision: {run_dir / 'monitor/supervision_report.md'}")
-        print(f"Failure dashboard: {run_dir / 'monitor/failure_dashboard.html'}")
-        print(f"Content package: {run_dir / 'final/content_package_manifest.json'}")
-        print(f"Video production package: {run_dir / 'final/video_production_package.json'}")
-        print(f"Materialization manifest: {run_dir / 'final/materialization_manifest.json'}")
-        print(f"Licensed media ingest manifest: {run_dir / 'final/licensed_media_ingest_manifest.json'}")
-        print(f"Licensed media proxy manifest: {run_dir / 'final/licensed_media_proxy_manifest.json'}")
-        print(f"Editor replacement instruction manifest: {run_dir / 'final/editor_replacement_instruction_manifest.json'}")
-        print(f"Editor replacement execution manifest: {run_dir / 'final/editor_replacement_execution_manifest.json'}")
-        print(f"Editor project mutation manifest: {run_dir / 'final/editor_project_mutation_manifest.json'}")
-        print(f"Editor software import manifest: {run_dir / 'final/editor_software_import_manifest.json'}")
-        print(f"Editor software real runner manifest: {run_dir / 'final/editor_software_real_runner_manifest.json'}")
-        print(f"Editor software run evidence manifest: {run_dir / 'final/editor_software_run_evidence_manifest.json'}")
-        print(f"Edit project manifest: {run_dir / 'final/edit_project_manifest.json'}")
-        print(f"Export project manifest: {run_dir / 'final/export_project_manifest.json'}")
-        print(f"Project bundle manifest: {run_dir / 'final/project_bundle_manifest.json'}")
-        print(f"Delivery index: {run_dir / 'final/delivery_index.json'}")
-        print(f"Artifact store: {run_dir / 'artifact_store/artifact_store_manifest.json'}")
-        print(f"External mirror plan: {run_dir / 'artifact_store/external_mirror_plan.json'}")
+        _print_existing_run_outputs(run_dir)
         return 0
 
     if args.mode == "resume":
@@ -90,26 +102,7 @@ def main() -> int:
             raise SystemExit("--run-id is required for resume mode")
         run_dir = resume_workflow(run_id=args.run_id, output_root=output_root)
         print(f"Resumed workflow run: {run_dir}")
-        print(f"Workflow state: {run_dir / 'workflow_run.json'}")
-        print(f"Run supervision: {run_dir / 'monitor/supervision_report.md'}")
-        print(f"Failure dashboard: {run_dir / 'monitor/failure_dashboard.html'}")
-        print(f"Content package: {run_dir / 'final/content_package_manifest.json'}")
-        print(f"Video production package: {run_dir / 'final/video_production_package.json'}")
-        print(f"Materialization manifest: {run_dir / 'final/materialization_manifest.json'}")
-        print(f"Licensed media ingest manifest: {run_dir / 'final/licensed_media_ingest_manifest.json'}")
-        print(f"Licensed media proxy manifest: {run_dir / 'final/licensed_media_proxy_manifest.json'}")
-        print(f"Editor replacement instruction manifest: {run_dir / 'final/editor_replacement_instruction_manifest.json'}")
-        print(f"Editor replacement execution manifest: {run_dir / 'final/editor_replacement_execution_manifest.json'}")
-        print(f"Editor project mutation manifest: {run_dir / 'final/editor_project_mutation_manifest.json'}")
-        print(f"Editor software import manifest: {run_dir / 'final/editor_software_import_manifest.json'}")
-        print(f"Editor software real runner manifest: {run_dir / 'final/editor_software_real_runner_manifest.json'}")
-        print(f"Editor software run evidence manifest: {run_dir / 'final/editor_software_run_evidence_manifest.json'}")
-        print(f"Edit project manifest: {run_dir / 'final/edit_project_manifest.json'}")
-        print(f"Export project manifest: {run_dir / 'final/export_project_manifest.json'}")
-        print(f"Project bundle manifest: {run_dir / 'final/project_bundle_manifest.json'}")
-        print(f"Delivery index: {run_dir / 'final/delivery_index.json'}")
-        print(f"Artifact store: {run_dir / 'artifact_store/artifact_store_manifest.json'}")
-        print(f"External mirror plan: {run_dir / 'artifact_store/external_mirror_plan.json'}")
+        _print_existing_run_outputs(run_dir)
         return 0
 
     if args.mode == "approve-repair":

@@ -12,6 +12,7 @@ class WorkflowStep:
     depends_on: list[str]
     outputs: list[str]
     platform: str | None = None
+    requires_any_platform: list[str] | None = None
     parallel_group: str | None = None
     requires_human_approval: bool = False
 
@@ -40,6 +41,7 @@ def workflow_from_dict(data: dict[str, Any]) -> Workflow:
             depends_on=list(item.get("depends_on", [])),
             outputs=list(item.get("outputs", [])),
             platform=item.get("platform"),
+            requires_any_platform=list(item.get("requires_any_platform", [])) or None,
             parallel_group=item.get("parallel_group"),
             requires_human_approval=bool(item.get("requires_human_approval", False)),
         )

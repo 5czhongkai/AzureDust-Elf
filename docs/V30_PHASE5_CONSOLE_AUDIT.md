@@ -27,7 +27,7 @@ The Phase 5 console provides a local Web UI and JSON API for:
 - explicit-confirm restore execution for safe backup ZIP entries
 - local setup check for Python, workflow, platform set, migration directories, resume state, backups, and secret presence
 
-Run creation currently requires the full workflow platform set. Partial platform selection is rejected by the console because the Phase 4 artifact store and external mirror chain expects all video platform bundles.
+Run creation supports one platform, any platform subset, or all five platforms. The workflow uses a shared research/topic/outline trunk, then prunes platform-specific branches and video-only shared delivery steps to the selected platform set.
 
 ## Boundary
 

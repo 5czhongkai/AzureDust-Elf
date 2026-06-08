@@ -13,7 +13,7 @@ make validate
 - JSON Schema 可被解析
 - agent registry 包含 V0 要求的 agent
 - plugin registry 包含 V0 要求的平台
-- 示例 workflow 包含五个平台产出步骤
+- 示例 workflow 包含五个平台产出步骤，并会按本次选择裁剪平台分支
 
 ## Phase 5 控制台
 

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from .api_key_store import apply_stored_api_keys
 from .runner import DEFAULT_PLATFORMS, DEFAULT_OUTPUT_ROOT, resume_workflow, run_workflow
 
 
@@ -555,6 +556,7 @@ class DurableJobStore:
 
 def execute_claimed_job(store: DurableJobStore, job: dict[str, Any], *, output_root: Path) -> dict[str, Any]:
     try:
+        apply_stored_api_keys(output_root)
         if job["kind"] == "run":
             workflow_path = Path(str(job.get("workflow_path") or ""))
             topic = str(job.get("topic") or "")

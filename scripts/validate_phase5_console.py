@@ -22,9 +22,11 @@ from content_agent_os.console_server import (  # noqa: E402
     ConsoleRuntime,
     make_console_handler,
 )
+from content_agent_os.api_key_store import PLATFORM_API_KEY_ENV_KEYS  # noqa: E402
 
 
 SECRET_SENTINEL = "phase5-secret-sentinel"
+API_KEY_SENTINEL = "phase5-console-api-key-sentinel"
 
 
 def fail(message: str) -> None:
@@ -155,6 +157,10 @@ def validate_runtime_api(tmp_root: Path) -> None:
     run_dir = write_fake_run(output_root)
     previous_secret = os.environ.get("SILICONFLOW_API_KEY")
     previous_env = os.environ.get("CONTENT_AGENT_ENV")
+    previous_platform_secrets = {
+        env_key: os.environ.get(env_key)
+        for env_key in PLATFORM_API_KEY_ENV_KEYS.values()
+    }
     os.environ["SILICONFLOW_API_KEY"] = SECRET_SENTINEL
     os.environ["CONTENT_AGENT_ENV"] = "validation"
     try:
@@ -180,6 +186,22 @@ def validate_runtime_api(tmp_root: Path) -> None:
         setup_text = json.dumps(setup_check, ensure_ascii=False)
         expect(setup_check.get("schema_version") == "phase5.setup_check.v1", "setup check schema mismatch")
         expect(SECRET_SENTINEL not in setup_text, "setup check must not expose secret values")
+
+        api_status = runtime.api_key_status()
+        expect(api_status.get("target_count") == 5, "API key status must include five platform targets")
+        expect(API_KEY_SENTINEL not in json.dumps(api_status, ensure_ascii=False), "API key status must not expose values")
+        api_save = runtime.save_api_keys({"keys": {"wechat": API_KEY_SENTINEL}})
+        api_save_text = json.dumps(api_save, ensure_ascii=False)
+        expect(api_save.get("updated_targets") == ["wechat"], "API key save must report updated platform")
+        expect(API_KEY_SENTINEL not in api_save_text, "API key save response must not expose secret values")
+        expect(os.environ.get("CONTENT_AGENT_WECHAT_API_KEY") == API_KEY_SENTINEL, "API key save must refresh process env")
+        api_status = runtime.api_key_status()
+        wechat_status = {item["id"]: item for item in api_status.get("targets", [])}.get("wechat", {})
+        expect(wechat_status.get("configured") is True, "saved platform API key must report configured")
+        env_status = runtime.environment_status()
+        secret_rows = {item["name"]: item for item in env_status.get("secrets", [])}
+        expect(secret_rows.get("CONTENT_AGENT_WECHAT_API_KEY", {}).get("present") is True, "saved API key must appear as present env")
+        expect(API_KEY_SENTINEL not in json.dumps(env_status, ensure_ascii=False), "env endpoint must not expose saved API key")
 
         run_index = runtime.list_runs()
         expect(run_index.get("runs", [{}])[0].get("run_id") == run_dir.name, "run index must include fake run")
@@ -225,12 +247,14 @@ def validate_runtime_api(tmp_root: Path) -> None:
             names = set(archive.namelist())
             expect("backup_manifest.json" in names, "backup must include manifest")
             expect("outputs/runs/run_20260602T000000Z/workflow_run.json" in names, "backup must include workflow run")
+            expect("outputs/runs/_state/api_keys.json" not in names, "backup must exclude local API key store")
             archive_text = "\n".join(
                 archive.read(name).decode("utf-8", errors="ignore")
                 for name in names
                 if name.endswith(".json") or name.endswith(".md")
             )
             expect(SECRET_SENTINEL not in archive_text, "backup must not include env secret values")
+            expect(API_KEY_SENTINEL not in archive_text, "backup must not include saved API key values")
         restore = runtime.restore_dry_run(backup_path.name)
         expect(restore.get("dry_run") is True, "restore dry-run must identify itself")
         expect(restore.get("will_extract") is False, "restore dry-run must not extract files")
@@ -260,12 +284,21 @@ def validate_runtime_api(tmp_root: Path) -> None:
             os.environ.pop("CONTENT_AGENT_ENV", None)
         else:
             os.environ["CONTENT_AGENT_ENV"] = previous_env
+        for env_key, value in previous_platform_secrets.items():
+            if value is None:
+                os.environ.pop(env_key, None)
+            else:
+                os.environ[env_key] = value
 
 
 def validate_http_console(tmp_root: Path) -> None:
     output_root = tmp_root / "outputs/runs"
     backup_root = tmp_root / "backups"
     run_dir = write_fake_run(output_root)
+    previous_platform_secrets = {
+        env_key: os.environ.get(env_key)
+        for env_key in PLATFORM_API_KEY_ENV_KEYS.values()
+    }
     runtime = ConsoleRuntime(
             ConsoleConfig(
                 workflow_path=ROOT / "workflows/one_topic_multi_platform.yaml",
@@ -284,11 +317,20 @@ def validate_http_console(tmp_root: Path) -> None:
         expect("自媒体内容创作工作台" in html, "console HTML missing Chinese workspace title")
         expect("创作输入" in html, "console HTML missing composer")
         expect("队列状态" in html, "console HTML missing queue status")
-        expect("生成内容预览" in html, "console HTML missing content preview")
+        expect("生成内容预览" not in html, "creator workspace should not render inline content preview")
         expect("加入生成队列" in html, "console HTML missing run control")
-        expect("下载当前内容" in html, "console HTML missing download control")
+        expect("生成平台" in html, "console HTML missing platform picker")
+        expect("全选五个平台" in html, "console HTML missing select-all platform control")
+        expect("align-items: stretch" in html, "creator workspace must stretch columns for aligned cards")
+        expect("workspace-card" in html, "creator workspace cards must use aligned card class")
+        expect("下载当前内容" not in html, "creator workspace should not render inline download control")
         expect("/api/uploads" in html, "console HTML missing upload endpoint wiring")
-        expect("platforms/${encodeURIComponent" in html, "console HTML missing platform preview wiring")
+        expect("platform-badge" in html, "console HTML missing task platform badge styling")
+        expect("platformBadge(job.platforms)" in html, "job task rows must render platform label before status")
+        expect("platformBadge(run.platforms)" in html, "run task rows must render platform label before status")
+        expect("data-content-url" in html, "console HTML missing explicit content-open handler wiring")
+        expect("scheduleContentFallback" in html, "console HTML missing content-open fallback wiring")
+        expect('target="_blank"' in html, "run content link should open in a new window")
         expect("后端控制台" in html, "creator workspace missing admin console link")
         expect("本机状态" not in html, "creator workspace should not expose local runtime panel")
         expect("队列维护" not in html, "creator workspace should not expose queue maintenance panel")
@@ -298,6 +340,8 @@ def validate_http_console(tmp_root: Path) -> None:
         expect("创作工作台" in admin_html, "admin console HTML missing creator workspace link")
         for phrase in ["本机状态", "配置检查", "队列维护", "队列任务", "备份恢复", "环境变量"]:
             expect(phrase in admin_html, f"admin console HTML missing phrase: {phrase}")
+        expect("API Key 配置" in admin_html, "admin console missing API key configuration panel")
+        expect("/api/api-keys" in admin_html, "admin console missing API key endpoint wiring")
         expect("make validate-phase5-setup" in admin_html, "admin console missing setup validation command")
         expect("make worker-once" in admin_html, "admin console missing worker command")
         expect("清理预览" in admin_html, "admin console missing cleanup dry-run control")
@@ -316,6 +360,16 @@ def validate_http_console(tmp_root: Path) -> None:
         expect("公众号生成内容" in platform_content.get("files", [{}])[0].get("content", ""), "HTTP platform content must include generated text")
         download_text = http_text(base_url, f"/api/runs/{run_dir.name}/platforms/wechat/download")
         expect("微信公众号生成内容" in download_text, "HTTP platform download missing content title")
+        run_content_html = http_text(base_url, f"/runs/{run_dir.name}/content")
+        expect("生成内容" in run_content_html, "run content page missing title")
+        expect("完整生成结果" in run_content_html, "run content page missing full content heading")
+        expect("下载全部内容" in run_content_html, "run content page missing all-content download button")
+        expect("下载本平台" in run_content_html, "run content page missing platform download button")
+        expect("微信公众号" in run_content_html, "run content page missing WeChat section")
+        expect("公众号生成内容" in run_content_html, "run content page must render generated content")
+        all_download_text = http_text(base_url, f"/runs/{run_dir.name}/content/download")
+        expect("微信公众号生成内容" in all_download_text, "all-content download missing WeChat content")
+        expect("小红书生成内容" in all_download_text, "all-content download missing Xiaohongshu content")
         upload = http_json(
             base_url,
             "/api/uploads",
@@ -351,6 +405,24 @@ def validate_http_console(tmp_root: Path) -> None:
         expect(setup_check.get("schema_version") == "phase5.setup_check.v1", "HTTP setup check schema mismatch")
         expect("checks" in setup_check, "HTTP setup check missing checks")
 
+        api_status = http_json(base_url, "/api/api-keys")
+        expect(api_status.get("target_count") == 5, "HTTP API key status must list platform targets")
+        api_save = http_json(
+            base_url,
+            "/api/api-keys",
+            method="POST",
+            payload={"keys": {"douyin": API_KEY_SENTINEL}},
+        )
+        expect(api_save.get("updated_targets") == ["douyin"], "HTTP API key save must report target")
+        expect(API_KEY_SENTINEL not in json.dumps(api_save, ensure_ascii=False), "HTTP API key save must not expose values")
+        api_status = http_json(base_url, "/api/api-keys")
+        douyin_status = {item["id"]: item for item in api_status.get("targets", [])}.get("douyin", {})
+        expect(douyin_status.get("configured") is True, "HTTP API key status must refresh after save")
+        env_status = http_json(base_url, "/api/env")
+        env_rows = {item["name"]: item for item in env_status.get("secrets", [])}
+        expect(env_rows.get("CONTENT_AGENT_DOUYIN_API_KEY", {}).get("present") is True, "HTTP env must see saved platform key")
+        expect(API_KEY_SENTINEL not in json.dumps(env_status, ensure_ascii=False), "HTTP env must not expose saved platform key")
+
         backup = http_json(base_url, "/api/backups", method="POST")
         backup_path = Path(str(backup.get("backup_path")))
         expect(backup_path.exists(), "HTTP backup must create zip")
@@ -380,19 +452,28 @@ def validate_http_console(tmp_root: Path) -> None:
         expect(restored.get("will_extract") is True, "HTTP confirmed restore must extract")
         expect(load_json(run_dir / "workflow_run.json").get("status") == "DONE", "HTTP restore must restore file content")
 
+        partial_job = http_json(
+            base_url,
+            "/api/runs",
+            method="POST",
+            payload={"topic": "partial platform run", "platforms": ["douyin"]},
+        )
+        expect(partial_job.get("status") == "QUEUED", "partial platform run should queue")
+        expect(partial_job.get("platforms") == ["douyin"], "partial platform run should keep selected platform")
+
         try:
             http_json(
                 base_url,
                 "/api/runs",
                 method="POST",
-                payload={"topic": "partial platform run", "platforms": ["douyin"]},
+                payload={"topic": "empty platform run", "platforms": []},
             )
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8")
-            expect(exc.code == 400, "partial platform run should return 400")
-            expect("full workflow platform set" in body, "partial platform error should explain full set requirement")
+            expect(exc.code == 400, "empty platform run should return 400")
+            expect("at least one platform" in body, "empty platform error should explain selection requirement")
         else:
-            fail("partial platform run should fail")
+            fail("empty platform run should fail")
 
         try:
             http_json(base_url, "/api/runs", method="POST", payload={"topic": "", "platforms": ["douyin"]})
@@ -404,6 +485,11 @@ def validate_http_console(tmp_root: Path) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+        for env_key, value in previous_platform_secrets.items():
+            if value is None:
+                os.environ.pop(env_key, None)
+            else:
+                os.environ[env_key] = value
 
 
 def validate_compose_files() -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,9 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from content_agent_os.console_server import ConsoleConfig, ConsoleRuntime  # noqa: E402
+from content_agent_os.api_key_store import PLATFORM_API_KEY_ENV_KEYS  # noqa: E402
 from content_agent_os.job_queue import DurableJobStore, job_db_path  # noqa: E402
 from content_agent_os.scheduler import run_scheduler_tick  # noqa: E402
 from content_agent_os.worker import run_worker_once  # noqa: E402
+
+
+API_KEY_SENTINEL = "phase5-worker-api-key-sentinel"
 
 
 def fail(message: str) -> None:
@@ -100,6 +105,9 @@ def validate_console_enqueue_and_worker(tmp_root: Path) -> None:
         execute_inline_jobs=False,
     )
     runtime = ConsoleRuntime(config)
+    previous_wechat_key = os.environ.get("CONTENT_AGENT_WECHAT_API_KEY")
+    runtime.save_api_keys({"keys": {"wechat": API_KEY_SENTINEL}})
+    os.environ.pop("CONTENT_AGENT_WECHAT_API_KEY", None)
     attachments = [
         {
             "id": "attachment_validation",
@@ -123,6 +131,10 @@ def validate_console_enqueue_and_worker(tmp_root: Path) -> None:
 
     result = run_worker_once(output_root=output_root, worker_id="validation-worker")
     expect(result.get("status") == "DONE", "worker must complete queued run job")
+    expect(
+        os.environ.get(PLATFORM_API_KEY_ENV_KEYS["wechat"]) == API_KEY_SENTINEL,
+        "worker must load console-saved platform API key store before execution",
+    )
     finished = restarted.get_job(str(job["job_id"]))
     expect(finished["status"] == "DONE", "durable job status must be DONE")
     run_dir = Path(str(finished["run_dir"]))
@@ -141,6 +153,10 @@ def validate_console_enqueue_and_worker(tmp_root: Path) -> None:
     expect(resume_job.get("status") == "QUEUED", "console must enqueue resume job")
     resume_result = run_worker_once(output_root=output_root, worker_id="validation-worker")
     expect(resume_result.get("status") == "DONE", "worker must complete queued resume job")
+    if previous_wechat_key is None:
+        os.environ.pop("CONTENT_AGENT_WECHAT_API_KEY", None)
+    else:
+        os.environ["CONTENT_AGENT_WECHAT_API_KEY"] = previous_wechat_key
 
 
 def validate_scheduler_handoff(tmp_root: Path) -> None:

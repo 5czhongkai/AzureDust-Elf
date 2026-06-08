@@ -1,6 +1,6 @@
 id: one_topic_multi_platform
 name: One Topic Multi Platform Content Package
-version: 0.0.0
+version: 0.1.0
 description: Generate WeChat, Xiaohongshu, Douyin, Shipinhao, and Bilibili content packages from one topic.
 inputs:
   - brief.topic
@@ -29,6 +29,7 @@ steps:
 
   - id: visual_assets
     agent: asset-agent
+    requires_any_platform: [douyin, shipinhao, bilibili]
     depends_on: [master_outline]
     outputs:
       - asset_plan.json
@@ -653,6 +654,7 @@ steps:
 
   - id: delivery_index
     agent: delivery-index-agent
+    requires_any_platform: [douyin, shipinhao, bilibili]
     depends_on: [douyin_project_bundle, shipinhao_project_bundle, bilibili_project_bundle]
     outputs:
       - final/delivery_index.json
@@ -660,6 +662,7 @@ steps:
 
   - id: artifact_store
     agent: artifact-store-agent
+    requires_any_platform: [douyin, shipinhao, bilibili]
     depends_on: [delivery_index]
     outputs:
       - artifact_store/artifact_store_manifest.json
@@ -673,6 +676,7 @@ steps:
 
   - id: external_mirror_plan
     agent: external-mirror-plan-agent
+    requires_any_platform: [douyin, shipinhao, bilibili]
     depends_on: [artifact_store]
     outputs:
       - artifact_store/external_mirror_plan.json
