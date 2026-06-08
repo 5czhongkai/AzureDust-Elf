@@ -68,7 +68,6 @@ def validate_static_contract() -> None:
     base_validator = read_text("scripts/validate_v0.py")
     for phrase in [
         "scripts/validate_phase5_queue_retention.py",
-        "docs/V34_PHASE5_QUEUE_RETENTION_AUDIT.md",
         "validate-phase5-queue-retention:",
     ]:
         expect(phrase in base_validator, f"base validator missing phrase: {phrase}")
@@ -81,7 +80,6 @@ def validate_static_contract() -> None:
         "README.md",
         "docs/RUNBOOK.md",
         "docs/IMPLEMENTATION_ROADMAP.md",
-        "docs/V34_PHASE5_QUEUE_RETENTION_AUDIT.md",
     ]:
         doc = read_text(doc_path)
         expect("queue history" in doc, f"{doc_path} missing queue history note")

@@ -44,7 +44,6 @@ def validate_static_contract() -> None:
         "src/content_agent_os/worker.py",
         "src/content_agent_os/scheduler.py",
         "scripts/validate_phase5_job_queue.py",
-        "docs/V32_PHASE5_JOB_QUEUE_AUDIT.md",
     ]:
         expect((ROOT / path).exists(), f"missing required path: {path}")
 
@@ -76,7 +75,6 @@ def validate_static_contract() -> None:
         "src/content_agent_os/job_queue.py",
         "src/content_agent_os/worker.py",
         "scripts/validate_phase5_job_queue.py",
-        "docs/V32_PHASE5_JOB_QUEUE_AUDIT.md",
         "validate-phase5-job-queue:",
     ]:
         expect(phrase in base_validator, f"base validator missing phrase: {phrase}")
@@ -85,7 +83,6 @@ def validate_static_contract() -> None:
         "README.md",
         "docs/RUNBOOK.md",
         "docs/IMPLEMENTATION_ROADMAP.md",
-        "docs/V32_PHASE5_JOB_QUEUE_AUDIT.md",
     ]:
         doc = read_text(doc_path)
         expect("durable job queue" in doc, f"{doc_path} missing durable job queue note")

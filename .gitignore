@@ -26,6 +26,7 @@ data/*
 outputs/*
 logs/*
 backups/*
+.local-docs/
 !data/.gitkeep
 !outputs/.gitkeep
 !logs/.gitkeep

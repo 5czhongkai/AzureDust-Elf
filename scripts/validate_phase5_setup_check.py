@@ -17,16 +17,12 @@ sys.path.insert(0, str(ROOT / "src"))
 from content_agent_os.console_server import (  # noqa: E402
     ConsoleConfig,
     ConsoleRuntime,
+    SECRET_ENV_KEYS,
     make_console_handler,
 )
 
 
 SECRET_SENTINEL = "phase5-setup-secret-sentinel"
-SECRET_ENV_KEYS = [
-    "OPENAI_API_KEY",
-    "SILICONFLOW_API_KEY",
-    "CONTENT_AGENT_OS_TTS_API_KEY",
-]
 
 
 def fail(message: str) -> None:
@@ -159,9 +155,6 @@ def validate_static_contract() -> None:
 
     roadmap = read_text("docs/IMPLEMENTATION_ROADMAP.md")
     expect("Step 4 已接入本地配置向导" in roadmap, "roadmap missing setup step")
-
-    audit = read_text("docs/V30_PHASE5_CONSOLE_AUDIT.md")
-    expect("make validate-phase5-setup" in audit, "audit missing setup validation command")
 
 
 def validate_runtime_and_http(tmp_root: Path) -> None:

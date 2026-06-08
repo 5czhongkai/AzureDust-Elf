@@ -81,7 +81,6 @@ def validate_static_contract() -> None:
         "README.md",
         "docs/RUNBOOK.md",
         "docs/IMPLEMENTATION_ROADMAP.md",
-        "docs/V31_PHASE5_PROFILES_AUDIT.md",
     ]:
         doc = read_text(doc_path)
         expect("worker" in doc, f"{doc_path} missing worker profile note")

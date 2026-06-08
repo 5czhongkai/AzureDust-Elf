@@ -67,7 +67,6 @@ def validate_static_contract() -> None:
     for needle in [
         "scripts/validate_phase5_local_runtime.py",
         "validate-phase5-local-runtime:",
-        "docs/V35_PHASE5_LOCAL_RUNTIME_AUDIT.md",
     ]:
         expect(needle in base_validator, f"base validator missing {needle}")
 
@@ -75,7 +74,6 @@ def validate_static_contract() -> None:
         "README.md",
         "docs/RUNBOOK.md",
         "docs/IMPLEMENTATION_ROADMAP.md",
-        "docs/V35_PHASE5_LOCAL_RUNTIME_AUDIT.md",
     ]:
         doc = read_text(doc_path)
         expect("local runtime" in doc, f"{doc_path} missing local runtime note")

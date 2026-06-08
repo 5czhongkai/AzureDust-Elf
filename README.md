@@ -15,6 +15,7 @@ AzureDust-Elf 是一个本地优先的自媒体内容创作自动化系统。它
 - “任务与队列状态”会在状态前标注平台名称，左右主卡片在桌面布局下保持顶部和底部对齐。
 - 后端控制台新增平台 API Key 只写配置；保存后会刷新运行环境，备份包会排除本地 API Key store。
 - Durable job queue、worker、CLI 输出和验收脚本已适配平台裁剪、内容查看页和安全配置路径。
+- 阶段审计记录改为本地 `.local-docs/` 保留，GitHub 仓库只保留 README、运行手册、路线图和迁移说明等必要开发文档。
 
 ## 主要功能
 
@@ -199,7 +200,7 @@ schemas/                JSON Schema
 src/content_agent_os/   Python 源码
 scripts/                验收和构建脚本
 desktop/                macOS 桌面启动器源码
-docs/                   设计文档、运行手册和阶段审计
+docs/                   运行手册、路线图和迁移说明
 examples/               示例输入
 ```
 

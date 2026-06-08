@@ -9,51 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_PATHS = [
     "README.md",
-    "docs/V0_BLUEPRINT.md",
     "docs/RUNBOOK.md",
     "docs/IMPLEMENTATION_ROADMAP.md",
-    "docs/V0_COMPLETION_AUDIT.md",
-    "docs/V1_STEP1_COMPLETION_AUDIT.md",
-    "docs/V1_STEP2_COMPLETION_AUDIT.md",
-    "docs/V1_STEP3_COMPLETION_AUDIT.md",
-    "docs/V1_STEP4_COMPLETION_AUDIT.md",
-    "docs/V1_STEP5_COMPLETION_AUDIT.md",
-    "docs/V1_STEP6_COMPLETION_AUDIT.md",
-    "docs/V1_STEP7_COMPLETION_AUDIT.md",
-    "docs/V1_STEP8_SHIPINHAO_AGENT_AUDIT.md",
-    "docs/V2_PHASE2_PERSISTENCE_AUDIT.md",
-    "docs/V3_PHASE3_SUPERVISION_AUDIT.md",
-    "docs/V4_PHASE3_STALE_DETECTOR_AUDIT.md",
-    "docs/V5_PHASE3_RETRY_POLICY_AUDIT.md",
-    "docs/V6_PHASE3_REPAIR_AGENT_AUDIT.md",
-    "docs/V7_PHASE3_HUMAN_APPROVAL_GATE_AUDIT.md",
-    "docs/V8_PHASE3_COMPLETION_AUDIT.md",
-    "docs/V9_PHASE4_VIDEO_PRODUCTION_PACKAGE_AUDIT.md",
-    "docs/V10_PHASE4_ASSET_PIPELINE_AUDIT.md",
-    "docs/V11_PHASE4_COVER_ADAPTER_AUDIT.md",
-    "docs/V12_PHASE4_STORYBOARD_PREVIEW_AUDIT.md",
-    "docs/V13_PHASE4_SUBTITLE_TIMING_AUDIT.md",
-    "docs/V14_PHASE4_VOICEOVER_TTS_AUDIT.md",
-    "docs/V15_PHASE4_EDIT_PROJECT_AUDIT.md",
-    "docs/V16_PHASE4_EXPORT_PROJECT_AUDIT.md",
-    "docs/V17_PHASE4_PROJECT_BUNDLE_AUDIT.md",
-    "docs/V18_PHASE4_DELIVERY_INDEX_AUDIT.md",
-    "docs/V19_PHASE4_ASSET_MATERIALIZATION_AUDIT.md",
-    "docs/V20_PHASE4_LICENSED_MEDIA_INGEST_AUDIT.md",
-    "docs/V21_PHASE4_LICENSED_MEDIA_PROXY_AUDIT.md",
-    "docs/V22_PHASE4_EDITOR_REPLACEMENT_INSTRUCTIONS_AUDIT.md",
-    "docs/V23_PHASE4_EDITOR_REPLACEMENT_EXECUTION_AUDIT.md",
-    "docs/V24_PHASE4_EDITOR_PROJECT_MUTATION_SANDBOX_AUDIT.md",
-    "docs/V25_PHASE4_EDITOR_SOFTWARE_IMPORT_EXECUTOR_AUDIT.md",
-    "docs/V26_PHASE4_EDITOR_SOFTWARE_REAL_RUNNER_SANDBOX_AUDIT.md",
-    "docs/V27_PHASE4_EDITOR_SOFTWARE_RUN_EVIDENCE_AUDIT.md",
-    "docs/V28_PHASE4_ARTIFACT_STORE_AUDIT.md",
-    "docs/V29_PHASE4_EXTERNAL_MIRROR_PLAN_AUDIT.md",
-    "docs/V30_PHASE5_CONSOLE_AUDIT.md",
-    "docs/V31_PHASE5_PROFILES_AUDIT.md",
-    "docs/V32_PHASE5_JOB_QUEUE_AUDIT.md",
-    "docs/V33_PHASE5_QUEUE_OPS_AUDIT.md",
-    "docs/V34_PHASE5_QUEUE_RETENTION_AUDIT.md",
     "Dockerfile",
     ".dockerignore",
     "docker-compose.yml",
@@ -174,7 +131,6 @@ REQUIRED_PATHS = [
     "desktop/macos/ContentAgentLauncher/main.swift",
     "desktop/macos/ContentAgentLauncher/Resources/content_creator_logo.svg",
     "docs/PHASE5_MIGRATION.md",
-    "docs/V35_PHASE5_LOCAL_RUNTIME_AUDIT.md",
     "src/content_agent_os/__init__.py",
     "src/content_agent_os/agents.py",
     "src/content_agent_os/approval_gate.py",
@@ -316,10 +272,10 @@ def main() -> int:
         if target not in makefile:
             fail(f"Makefile missing target: {target}")
 
-    blueprint = read_text("docs/V0_BLUEPRINT.md")
-    for phrase in ["Global Orchestrator", "Platform Plugins", "V0 验收标准"]:
-        if phrase not in blueprint:
-            fail(f"blueprint missing phrase: {phrase}")
+    readme = read_text("README.md")
+    for phrase in ["AzureDust-Elf", "当前版本", "主要功能"]:
+        if phrase not in readme:
+            fail(f"README missing phrase: {phrase}")
 
     print("V0 validation passed.")
     print(f"Checked {len(REQUIRED_PATHS)} required paths, {len(REQUIRED_AGENTS)} agents, {len(REQUIRED_PLUGINS)} plugins.")

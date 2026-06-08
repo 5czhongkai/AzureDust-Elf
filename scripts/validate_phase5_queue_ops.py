@@ -59,14 +59,12 @@ def validate_static_contract() -> None:
 
     base_validator = read_text("scripts/validate_v0.py")
     expect("scripts/validate_phase5_queue_ops.py" in base_validator, "base validator missing queue ops validator")
-    expect("docs/V33_PHASE5_QUEUE_OPS_AUDIT.md" in base_validator, "base validator missing queue ops audit")
     expect("validate-phase5-queue-ops:" in base_validator, "base validator missing queue ops target")
 
     for doc_path in [
         "README.md",
         "docs/RUNBOOK.md",
         "docs/IMPLEMENTATION_ROADMAP.md",
-        "docs/V33_PHASE5_QUEUE_OPS_AUDIT.md",
     ]:
         doc = read_text(doc_path)
         expect("queue observability" in doc, f"{doc_path} missing queue observability note")
